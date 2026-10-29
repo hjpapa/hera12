@@ -1,0 +1,19 @@
+{
+  "name": "hercules-twelve-stars",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "헤라클레스의 열두 별 - 초등 저학년용 2.5D 액션 RPG",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@fontsource/jua": "^5.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  }
+}

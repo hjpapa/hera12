@@ -1,0 +1,17 @@
+{
+  "name": "헤라클레스의 열두 별",
+  "short_name": "헤라클레스",
+  "description": "꼬마 영웅 헤라클레스의 12과업 대모험",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1d2350",
+  "theme_color": "#1d2350",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

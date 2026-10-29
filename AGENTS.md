@@ -1,0 +1,48 @@
+# 헤라클레스의 열두 별 — 작업 지침 (Claude · Codex 공용)
+
+초등 저학년용 2.5D 액션 RPG. 3D 로우폴리 월드(Three.js) + 2D 종이 인형 캐릭터(빌보드). 휴대폰 웹 전체 화면.
+
+- 시나리오: [docs/SCENARIO.md](docs/SCENARIO.md) — 🧒 아이 시나리오 문장은 **바꾸지 말 것**
+- 디자인·조작·타격감 수치: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md)
+- 실행: `npm install` → `npm run dev` (같은 Wi-Fi 휴대폰에서 표시된 Network 주소로 접속)
+
+## 현재 진행 상황
+
+완료 (전체 흐름: 타이틀 → 프롤로그 → 마을 튜토리얼 → 과업 1~12 → 엔딩 → 자유 모드, 봇으로 끝까지 통과 확인)
+- 문서: SCENARIO.md, GAME_DESIGN.md, ASSET_SPEC.md, README.md
+- `src/core/`: 루프(히트스톱·슬로모션·`?sim`), 입력(플로팅 조이스틱·버튼·키보드·게임패드), 소리(합성 효과음·배경음악·TTS), 저장, 스크립트 대기
+- `src/render/`: 임시 그림 화가, 스프라이트 저장소(manifest 교체), 종이 인형 빌보드, 효과(파티클·예고·데미지 숫자), 툰 소품, 카메라
+- `src/game/`: 월드(걷기 영역·충돌·정적 메시 합치기), 플레이어(3단 콤보·자동 조준·구르기·독화살/딸랑이/창·꽉 잡기), 적 6종 AI, 보스 패턴, 아이템, NPC/동료, 목표 화살표
+- `src/ui/`: HUD, 대화창(읽어주기·선택지), 타이틀·일시정지·설정·지도·레벨업·결과·그림책·도감·상점·엔딩
+- `src/stages/`: hub, prologue, labor01~12 (엔딩은 hub.js 의 `ending()`)
+
+다음에 할 만한 것
+- Codex: docs/ASSET_SPEC.md 의 그림·소리 제작 (게임 코드는 수정 불필요)
+- 실제 아이와 플레이해 보고 난이도(보스 체력, 적 수) 조정 — 각 laborNN.js 위쪽 상수와 보스 클래스 `hp`
+- GLB 3D 모델 교체 연결 (manifest.models 는 아직 미사용)
+
+테스트: `?stage=labor05&auto&god&bot&sim` (봇이 끝까지 플레이), `?gallery` (그림 확인)
+
+## 애셋 작업 규칙 (Codex)
+
+코드는 애셋 없이도 돌아간다(임시 그림·합성음). 애셋을 넣으면 자동 교체된다.
+
+1. 파일 위치: `public/assets/sprites/`, `audio/`, `music/`, `story/`, `models/`
+2. 등록: `public/assets/manifest.json`
+   ```json
+   {
+     "sprites": { "hercules": "sprites/hercules.png" },
+     "audio":   { "hit": "audio/hit.ogg" },
+     "music":   { "hub": "music/hub.ogg" },
+     "story":   { "story_01": "story/story_01.png" },
+     "models":  {}
+   }
+   ```
+3. 스프라이트 id·비율·키는 `src/data/sprites.js` 가 기준. 그림 비율 = `w:h`(기본 256:256, 네발짐승 320:256, 무기 128:256), **2배 해상도** 권장(512x512 등). 투명 배경 PNG.
+4. 기준점: 캐릭터는 **발이 그림 아래쪽 가운데**에 닿게. 무기는 **손잡이가 아래쪽 가운데**.
+5. 방향: 캐릭터는 **정면 또는 오른쪽**을 보게 그림 (왼쪽은 코드가 좌우 반전).
+6. 스타일: 2~2.5등신 치비, 굵은 짙은 갈색 외곽선(#3a2618), 큰 눈 + 볼터치, 평면 채색 + 하이라이트 1개. 팔레트는 GAME_DESIGN.md 7장.
+7. 무서운 표현 금지: 피·상처 없음, 괴물도 동그랗고 귀엽게(화난 눈썹 정도).
+8. 효과음 id: `src/core/audio.js` 의 `SFX` 키(hit, hit_big, swing, dash, coin, roar …), 음악 id: `SONGS` 키(hub, field, boss, chase, sad, underworld, ending).
+9. 게임 로직 코드(src/game, src/stages)는 요청이 없으면 수정하지 말 것. 애셋 추가는 manifest와 public/assets 만 건드린다.
+10. 앱 아이콘: `public/icons/icon-192.png`, `icon-512.png` (icon.svg 디자인 기준) 제작 필요.
