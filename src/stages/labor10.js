@@ -107,6 +107,7 @@ class Cow extends Follower {
 export default class Labor10 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['helios', 'orthrus', 'geryon', 'cow_red', 'boulder']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 4 };
     this.skill = 'bow';
   }

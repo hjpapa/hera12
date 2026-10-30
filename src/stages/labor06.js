@@ -14,6 +14,7 @@ const NESTS = [[-9, -22], [9, -22], [-11, -34], [11, -34], [-4, -40], [5, -40]];
 export default class Labor06 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['stym_bird', 'stym_leader', 'athena']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 3 };
     this.skill = 'bow';
     this.birds = [];

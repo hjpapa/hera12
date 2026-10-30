@@ -42,6 +42,7 @@ function textSprite(lines, { w = 512, h = 192, bg = 'rgba(255,248,232,0.95)', co
 export default class Hub extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['eurystheus', 'iolaus', 'merchant', 'glau', 'villager', 'villager2', 'cerberus_happy', 'dummy']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.music = 'hub';
     this.spawn = p.report ? { x: 0, z: 1.5 } : { x: 0, z: 15 };
     this.gates = [];
@@ -402,6 +403,13 @@ export default class Hub extends Stage {
     G.audio.jingle('star');
     G.ui.hud.flash('gold');
     await this.banner(`영웅의 별 ${save.clearedCount()} / 12`, '별자리 제단에 별이 켜졌다!', 2);
+    // 과업의 뒷이야기 (신화에 전해지는 곁가지 이야기)
+    if (L.side && !(save.data.sideSeen || []).includes(n)) {
+      await this.say('glau', `부엉! 이번 과업에는 뒷이야기가 있어. "${L.side.title}" 들어 볼래?`);
+      await G.ui.screens.storybook(L.side.pages);
+      save.data.sideSeen = [...(save.data.sideSeen || []), n];
+      if (L.side.card && save.addCard(L.side.card)) await G.ui.screens.card(L.side.card);
+    }
     save.data.pendingReport = 0;
     save.write();
     this.refreshGates();
@@ -473,11 +481,17 @@ const VILLAGER = [
   '왕님은 겁이 많아서, 무서운 걸 보면 항아리에 숨는대요. 쉿!',
   '항아리를 깨도 괜찮아요. 우리 마을 항아리는 금방 다시 생기거든요!',
   '올리브 상인에게 동전을 가져가면 좋은 물건을 살 수 있어요.',
+  '밤하늘의 은하수 알아요? 아기 헤라클레스 때문에 생겼대요!',
+  '헤라클레스 님의 첫 이름은 "알케이데스"였대요. 델포이의 무녀가 새 이름을 지어 줬대요.',
+  '헤라클레스 님은 어릴 때 활쏘기, 씨름, 마차 몰기, 리라 연주까지 다 배웠대요.',
 ];
 const VILLAGER2 = [
   '별자리 제단의 별이 하나씩 켜질 때마다 마을이 더 밝아지는 것 같아요.',
   '아테나 여신님의 부엉이가 늘 헤라클레스 님 곁에 있대요.',
   '레벨이 오르면 힘, 체력, 빠르기 중에서 고를 수 있대요!',
+  '올림픽 경기를 처음 연 사람이 헤라클레스 님이라는 이야기도 있어요!',
+  '"헤라클레스"는 "헤라의 영광"이라는 뜻이래요. 신기하죠?',
+  '구르는 순간에 공격을 피하면 "완벽한 회피"! 필살기 게이지가 확 차요.',
 ];
 const IOLAUS = [
   '삼촌! 적이 빨간 원을 그리면 곧 공격한다는 뜻이에요. 휙 굴러서 피해요!',

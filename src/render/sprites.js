@@ -101,6 +101,15 @@ export class SpriteBank {
     return t;
   }
 
+  // 스테이지가 바뀔 때: 늘 쓰는 그림(헤라클레스·무기·항아리·아이콘)만 남기고 GPU 텍스처를 내린다
+  releaseUnused() {
+    for (const id of Object.keys(this.textures)) {
+      if (/^(hercules|w_|amphora|icon_)/.test(id)) continue;
+      this.textures[id].dispose();
+      delete this.textures[id];
+    }
+  }
+
   // UI 아이콘 data URL
   iconURL(name) {
     const id = 'icon_' + name;

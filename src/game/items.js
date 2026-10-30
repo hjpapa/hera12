@@ -92,6 +92,19 @@ const SHOT_LOOKS = {
   rock: () => new THREE.Mesh(new THREE.IcosahedronGeometry(0.7, 0), toon(0x9a9488)),
   water: () => new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 1), new THREE.MeshBasicMaterial({ color: 0x9fd8ff })),
 };
+// 투사체 모양은 종류마다 한 번만 만들고 복제해서 씀 (휴대폰에서 메모리·GC 절약)
+const SHOT_PROTO = {};
+function shotMesh(kind) {
+  if (!SHOT_PROTO[kind]) {
+    const m = SHOT_LOOKS[kind]();
+    m.traverse((o) => {
+      if (o.geometry) o.geometry.userData.shared = true;
+      if (o.material) o.material.userData.shared = true;
+    });
+    SHOT_PROTO[kind] = m;
+  }
+  return SHOT_PROTO[kind].clone();
+}
 const SHOT_COLORS = { feather: 0xffd27a, javelin: 0xffffff, fire: 0xff8a2a, ice: 0xbfefff, poison: 0x8af06a, rock: 0xc8bca8, water: 0x9fd8ff };
 
 export class Shot extends Entity {
@@ -112,7 +125,7 @@ export class Shot extends Entity {
       this.lobT = 0;
       this.sx = o.x; this.sz = o.z;
     }
-    this.mesh = SHOT_LOOKS[this.kind]();
+    this.mesh = shotMesh(this.kind);
     this.spin = this.kind === 'rock' || this.kind === 'ice';
   }
 
@@ -166,7 +179,7 @@ export class Shot extends Entity {
   dispose() {
     super.dispose();
     this.mesh.removeFromParent();
-    this.mesh.traverse((o) => { o.geometry?.dispose(); if (o.material && !o.material.userData.shared) o.material.dispose(); });
+    this.mesh.traverse((o) => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); if (o.material && !o.material.userData.shared) o.material.dispose(); });
   }
 }
 

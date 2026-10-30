@@ -28,6 +28,6 @@ export function showGallery() {
   };
   for (const [id, def] of Object.entries(SPRITES)) card(id, G.sprites.source(id), `${id} · ${def.w || 256}:${def.h || 256} · ${def.worldH}m`);
   for (const ic of ICONS) card('icon_' + ic, G.sprites.source('icon_' + ic), 'icon_' + ic);
-  for (const s of ['p_birth', 'p_hera', 'p_grow', 'p_curse', 'p_delphi', 'p_journey', 'e_adventure', 'e_olympus', 'e_hera', 'e_hebe', 'e_stars']) card(s, storyCanvas(s), s + ' · 16:9');
+  for (const s of ['p_birth', 'p_hera', 'p_grow', 'p_curse', 'p_delphi', 'p_journey', 'p_milkyway', 'p_teachers', 'p_crossroads', 's1_molorchus', 's2_rock', 's3_hyperborea', 's4_chiron', 's5_olympics', 's6_ares', 's7_promise', 's8_alcestis', 's8_return', 's9_hesione', 's10_cacus', 's11_antaeus', 's12_theseus', 's12_poplar', 'e_adventure', 'e_olympus', 'e_hera', 'e_hebe', 'e_stars']) card(s, storyCanvas(s), s + ' · 16:9');
   document.body.appendChild(wrap);
 }

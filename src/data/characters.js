@@ -49,4 +49,9 @@ export const CHARS = {
   villager2: { name: '티린스 사람', sprite: 'villager2', pitch: 1.25 },
   merchant: { name: '올리브 상인', sprite: 'merchant', pitch: 0.85 },
   stym: { name: '스팀팔로스의 새', sprite: 'stym_leader', pitch: 1.2 },
+  apollo: { name: '아폴론', sprite: 'apollo', pitch: 1.05 },
+  theseus: { name: '테세우스', sprite: 'theseus', pitch: 1.1 },
+  theseus_free: { name: '테세우스', sprite: 'theseus_free', pitch: 1.15 },
+  arete: { name: '아레테 (옳은 길)', sprite: 'arete', pitch: 1.1, rate: 0.95 },
+  kakia: { name: '카키아 (쉬운 길)', sprite: 'kakia', pitch: 1.35, rate: 1.1 },
 };

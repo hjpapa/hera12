@@ -156,6 +156,7 @@ function setTimeoutGame(sec, fn) {
 export default class Labor02 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['iolaus', 'toad', 'crab_giant', 'hydra_body', 'hydra_head', 'hydra_head_gold', 'boulder']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 2 };
     this.heads = [];
     this.stumps = [];

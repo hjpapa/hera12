@@ -33,6 +33,7 @@ export const Combat = {
         if (r.knock) e.push(dx, dz, r.knock);
         if (r.onHit) r.onHit();
         this.addCombo();
+        if (info.type !== 'special') G.player?.addHero?.(info.big ? 5 : 3);
         return { blocked: true };
       }
     }
@@ -62,13 +63,19 @@ export const Combat = {
     if (info.launch && !e.flying && e.knockResist < 0.5) e.vy = info.launch;
     if (info.type !== 'poison') this.addCombo();
     if (info.poison) e.addPoison?.(info.poison);
-    if (e.hp <= 0 && e.alive) e.die(info);
+    if (info.type !== 'poison' && info.type !== 'special' && e.team === 'enemy') G.player?.addHero?.(info.big ? 5 : 3);
+    if (e.hp <= 0 && e.alive) {
+      e.die(info);
+      if (e.team === 'enemy' && info.type !== 'special') G.player?.addHero?.(8);
+    }
     return { dealt: amount, crit, killed: !e.alive };
   },
 
   addCombo() {
     this.combo++;
     this.comboT = 2.5;
+    const st = G.stage?.stats;
+    if (st && this.combo > st.maxCombo) st.maxCombo = this.combo;
     G.ui?.hud?.combo(this.combo);
   },
 

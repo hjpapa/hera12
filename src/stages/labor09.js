@@ -47,7 +47,7 @@ class Hippolyta extends Boss {
   }
   // 방패를 든 동안 앞에서 오는 공격은 막힘 → 옆이나 뒤로 돌아가서!
   damageFilter(info, dx, dz) {
-    if (!this.guarding || info.type === 'poison') return null;
+    if (!this.guarding || info.type === 'poison' || info.type === 'special') return null;
     const d = this.dir;
     if (d.x * -dx + d.z * -dz > 0.3) return { blocked: true, text: '막았다!', sound: 'ting', color: '#ffffff' };
     return null;
@@ -61,6 +61,7 @@ class Hippolyta extends Boss {
 export default class Labor09 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['hippolyta', 'hippolyta_down', 'amazon', 'amazon_archer', 'hera_amazon']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 5 };
   }
 

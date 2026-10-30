@@ -52,6 +52,8 @@ export class HUD {
     const b = G.input.btn;
     b.dash.querySelector('img').src = G.sprites.iconURL('dash');
     b.swap.querySelector('img').src = G.sprites.iconURL('swap');
+    b.special.querySelector('img').src = G.sprites.iconURL('star');
+    this.heroRing = b.special.querySelector('.gauge circle');
     this.ctxLabel = b.attack.querySelector('.lbl');
     this.attackImg = b.attack.querySelector('img');
     this.skillImg = b.skill.querySelector('img');
@@ -64,6 +66,7 @@ export class HUD {
   }
 
   updateAll() {
+    this.updateHero();
     this.updateHearts();
     this.updateExp();
     this.updateCoins();
@@ -94,6 +97,16 @@ export class HUD {
     }
     this.lastHp = hp;
     this.vignette.classList.toggle('low', hp > 0 && hp <= 2);
+  }
+
+  // 필살기 게이지: 별 버튼 테두리가 차오르고, 가득 차면 반짝반짝
+  updateHero() {
+    const p = G.player;
+    const b = G.input.btn.special;
+    if (!p || !b || !this.heroRing) return;
+    const k = Math.min(1, (p.hero || 0) / 100);
+    this.heroRing.style.strokeDashoffset = String(289 * (1 - k));
+    b.classList.toggle('ready', k >= 1);
   }
 
   updateExp() {
@@ -228,7 +241,7 @@ export class HUD {
       this.mashState = st;
       G.input.btn.attack.classList.add('mashing');
       if (this.ctxLabel) this.ctxLabel.textContent = '톡톡!';
-      if (G.debug.auto) st.v = goal;
+      if (G.debug.auto) st.v = goal * 2;
     });
   }
 
@@ -277,14 +290,19 @@ export class HUD {
     if (p.skill && this.skillRing) {
       const cdMax = { bow: 0.45, rattle: 4, spear: 1.6 }[p.skill] || 1;
       const k = Math.max(0, (p.cd[p.skill] || 0) / cdMax);
-      this.skillRing.style.strokeDashoffset = String(289 * (1 - k));
-      G.input.btn.skill.classList.toggle('cooling', k > 0);
+      const off = Math.round(289 * (1 - k));
+      if (off !== this.lastRing) {
+        this.lastRing = off;
+        this.skillRing.style.strokeDashoffset = String(off);
+        G.input.btn.skill.classList.toggle('cooling', k > 0);
+      }
     }
     // 보스 체력 잔상
     if (this.boss) {
       const f = this.boss.bossFrac ? this.boss.bossFrac() : Math.max(0, this.boss.hp / this.boss.maxHp);
-      this.lagFrac += (f - this.lagFrac) * Math.min(1, rawDt * 3);
-      this.bossLag.style.width = this.lagFrac * 100 + '%';
+      const lag = this.lagFrac + (f - this.lagFrac) * Math.min(1, rawDt * 3);
+      if (Math.abs(lag - this.lagFrac) > 0.001) this.bossLag.style.width = lag * 100 + '%';
+      this.lagFrac = lag;
     }
   }
 }

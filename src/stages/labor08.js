@@ -84,6 +84,7 @@ class Mare extends Enemy {
 export default class Labor08 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['soldier', 'diomedes', 'mare', 'mare_calm']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 4 };
     this.lightningT = 4;
   }
@@ -124,6 +125,12 @@ export default class Labor08 extends Stage {
 
   async run() {
     await this.intro();
+    const pre = this.labor.prelude;
+    if (pre && !(G.save.data.sideSeen || []).includes('p8')) {
+      await G.ui.screens.storybook(pre.pages);
+      G.save.data.sideSeen = [...(G.save.data.sideSeen || []), 'p8'];
+      if (pre.card && G.save.addCard(pre.card)) await G.ui.screens.card(pre.card);
+    }
     this.objective('디오메데스의 마구간으로!', { x: 0, z: -22 });
     await this.ambush(0, -20, 9, () => [...this.wave(SOLDIER, 3, 0, -24, 4), ...this.wave(THROWER, 2, 0, -28, 2)], { text: '디오메데스의 병사들이다!' });
     this.checkpointAt(0, -30);

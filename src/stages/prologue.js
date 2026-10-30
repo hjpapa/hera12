@@ -8,6 +8,7 @@ import * as THREE from 'three';
 export default class Prologue extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['hercules_baby', 'iphicles', 'snake', 'snake_dizzy']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.music = 'sad';
     this.spawn = { x: 0, z: 0.4 };
   }
@@ -55,14 +56,37 @@ export default class Prologue extends Stage {
     this.twin.gravity = 0;
   }
 
+  // 갈림길의 선택 (프로디코스의 이야기): 아이가 직접 고른다
+  async crossroads() {
+    await this.talk([
+      ['kakia', '이쪽으로 오렴! 맛있는 것만 먹고, 놀기만 하면 되는 쉬운 길이야~'],
+      ['arete', '이쪽은 힘들고 땀이 나는 길이란다. 하지만 사람들을 돕고, 끝까지 해내는 옳은 길이지.'],
+    ]);
+    for (;;) {
+      const i = await this.choose('hercules', '어느 길로 갈까?', ['쉽고 편한 길', '힘들지만 옳은 길']);
+      if (i === 1) break;
+      await this.talk([
+        ['kakia', '좋아, 좋아! 하루 종일 놀자~'],
+        ['glau', '부엉… 그런데 그 길 끝에는 아무것도 남지 않는대. 다시 한번 생각해 볼까?'],
+      ]);
+    }
+    await this.talk([
+      ['arete', '훌륭하구나. 힘든 일을 하나씩 해내면, 사람들은 너를 영원히 기억할 거야.'],
+      ['hercules', '네! 힘들어도 옳은 길로 갈게요!'],
+    ]);
+    if (G.save.addCard('crossroads')) await G.ui.screens.card('crossroads');
+  }
+
   async run() {
     G.input.setVisible(false);
     this.cutscene(true);
     G.rig.zoomTarget = 0.55;
     await G.ui.screens.storybook([
-      { art: 'p_birth', text: '아주 먼 옛날, 신들의 왕 제우스에게 아들이 태어났어요. 이름은 헤라클레스!' },
-      { art: 'p_hera', text: '하지만 제우스의 아내 헤라 여신은 헤라클레스가 미웠어요. 그래서 아기 침대에 뱀 두 마리를 몰래 보냈지요.' },
+      { art: 'p_birth', text: '아주 먼 옛날, 신들의 왕 제우스에게 아들이 태어났어요. 아기의 첫 이름은 "알케이데스"였어요.' },
+      { art: 'p_milkyway', text: '헤르메스가 몰래 아기를 잠든 헤라 여신에게 데려가 젖을 먹였어요. 깜짝 놀란 헤라가 아기를 떼어 내자, 하늘에 뿌려진 젖이 반짝이는 은하수가 되었대요!' },
+      { art: 'p_hera', text: '그 일로 헤라 여신은 아기가 더 미워졌어요. 그래서 아기 침대에 뱀 두 마리를 몰래 보냈지요.' },
     ]);
+    if (G.save.addCard('milkyway')) await G.ui.screens.card('milkyway');
     // 뱀 두 마리가 다가온다
     const snakes = [-1, 1].map((s) => this.add(new Entity({ sprite: 'snake', x: s * 6, z: 3, solid: false, face: -s, scale: 1.5 })));
     G.audio.play('hiss');
@@ -85,6 +109,7 @@ export default class Prologue extends Stage {
     G.input.btn.dash.classList.add('hidden');
     G.input.btn.skill.classList.add('hidden');
     G.input.btn.swap.classList.add('hidden');
+    G.input.btn.special.classList.add('hidden');
     let ok = false;
     while (!ok) {
       ok = await G.ui.hud.mash({ title: '꽉 잡기!', hint: '큰 버튼을 톡톡톡!', goal: 14, time: 12, decay: 0.7, onTap: (k) => {
@@ -109,10 +134,16 @@ export default class Prologue extends Stage {
       ['glau', '우와… 아기가 뱀을 이겼어! 이 힘, 꼭 기억해 둬. 나중에 아주 쓸모가 있을 거야.'],
     ]);
     await G.ui.screens.storybook([
+      { art: 'p_teachers', text: '아기는 훌륭한 선생님들에게 배웠어요. 아버지 암피트리온에게는 마차 몰기, 아우톨리코스에게는 씨름, 에우리토스에게는 활쏘기, 카스토르에게는 칼싸움, 리노스에게는 리라 연주를!' },
       { art: 'p_grow', text: '헤라클레스는 무럭무럭 자라 세상에서 가장 힘센 청년이 되었어요.' },
+      { art: 'p_crossroads', text: '어느 날 갈림길에서 두 여인을 만났어요. 한 사람은 쉽고 편한 길을, 한 사람은 힘들지만 옳은 길을 가리켰지요.' },
+    ]);
+    await this.crossroads();
+    await G.ui.screens.storybook([
       { art: 'p_curse', text: '그런데 헤라의 나쁜 마법 때문에, 헤라클레스는 아주 큰 잘못을 저지르고 말았어요. 마법이 풀리자 헤라클레스는 펑펑 울었어요.' },
       { art: 'p_delphi', text: '잘못을 씻을 방법을 묻기 위해 델포이 신전으로 가자, 무녀가 말했어요.' },
       { art: 'p_delphi', text: '"티린스의 에우리스테우스 왕을 찾아가거라. 왕이 내리는 과업을 모두 해내면, 너는 영원히 기억되는 영웅이 되리라."' },
+      { art: 'p_delphi', text: '무녀는 새 이름도 지어 주었어요. "헤라클레스", 헤라의 영광이라는 뜻이에요. 미움을 이겨 내고 빛나라는 뜻이었을까요?' },
       { art: 'p_journey', text: '헤라클레스는 길을 떠났어요. 열두 개의 과업, 열두 개의 별을 향해!' },
     ]);
     G.save.data.prologueDone = true;
