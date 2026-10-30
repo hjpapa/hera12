@@ -8,6 +8,9 @@ import { computeStats, expToNext } from './stats.js';
 import { Arrow } from './items.js';
 import { damp, dampAngle, angleDiff, clamp, easeOutCubic, TAU, rand } from '../core/util.js';
 
+// 손 위치 (몸 그림 기준, 미터): 무기 손잡이가 여기에 붙는다
+const HAND = { x: 0.44, y: 0.63 };
+
 // 3단 콤보 표 (GAME_DESIGN.md 3장)
 const COMBO = [
   { dur: 0.3, active: 0.07, mult: 1.0, knock: 3, hitstop: 0.05, reach: 2.4, arc: 150, lunge: 7, a0: 1.5, a1: -1.8, sfx: 1.0 },
@@ -46,7 +49,7 @@ export class Player extends Entity {
     this.weaponRest = 0.5;
     this.weaponAngle = 0.5;
     this.showBowT = 0;
-    this.visual.addPart('weapon', 'w_club', { x: 0.42, y: 0.55, z: 0.04 });
+    this.visual.addPart('weapon', 'w_club', { x: HAND.x, y: HAND.y, z: 0.04 });
     this.addXray();
     this.spearHits = new Set();
     G.player = this;
@@ -576,7 +579,14 @@ export class Player extends Entity {
     v.lift = lift;
     const w = v.parts.weapon;
     if (w) {
-      w.mesh.rotation.z = this.weaponAngle;
+      if (w.id === 'w_bow') {
+        // 활은 가운데 손잡이를 쥐고 똑바로 세워 앞으로 내밈
+        w.mesh.position.set(HAND.x + 0.12, HAND.y + 0.15 - w.h * 0.5, 0.04);
+        w.mesh.rotation.z = 0;
+      } else {
+        w.mesh.position.set(HAND.x, HAND.y, 0.04);
+        w.mesh.rotation.z = this.weaponAngle;
+      }
       w.mesh.visible = this.state !== 'faint' && !this.holding;
     }
     if (this.xray) this.xray.scale.copy(v.body.mesh.scale);
