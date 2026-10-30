@@ -98,6 +98,7 @@ class LadonHead extends Enemy {
 export default class Labor11 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['nereus', 'prometheus', 'prometheus_free', 'chain', 'atlas', 'atlas_free', 'eagle', 'ladon_head', 'ladon_body', 'hercules_hold']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 4 };
     this.skill = 'bow';
   }
@@ -124,9 +125,10 @@ export default class Labor11 extends Stage {
     B.water(0, 22, { w: 120, h: 30, color: 0x2a8ad8, color2: 0x9ae0ff });
     for (let i = 0; i < 5; i++) B.mountain(rand(-40, 40), rand(-44, -36) - 14, { r: rand(6, 10), h: rand(12, 18), color: 0x8a8a98 });
     // 프로메테우스의 바위
-    B.rock(0, -38.5, { s: 2.6, color: 0x7a7a88 });
-    this.prom = this.add(new NPC({ sprite: 'prometheus', x: 0, z: -36, lookAtPlayer: false }));
-    this.chains = [[-2.6, -34.5], [2.6, -34.5], [0, -32.5]].map(([x, z]) => {
+    // 길(가운데)을 막지 않게 왼쪽으로 비켜 둠
+    B.rock(-5, -38.5, { s: 2.2, color: 0x7a7a88 });
+    this.prom = this.add(new NPC({ sprite: 'prometheus', x: -5, z: -36, lookAtPlayer: false }));
+    this.chains = [[-7.4, -34.5], [-2.6, -34.5], [-5, -32.5]].map(([x, z]) => {
       const c = this.add(new Breakable({ x, z, sprite: 'chain', radius: 0.6, hits: 3 }));
       c.hittable = false;
       return c;
@@ -171,6 +173,12 @@ export default class Labor11 extends Stage {
     ]);
     G.fx.burst(this.nereus.pos, { count: 14, color: 0x9ae0ff, tile: 'drop', size: 0.5, speed: 4, additive: false });
     this.nereus.world.remove(this.nereus);
+    const pre = this.labor.prelude;
+    if (pre && !(G.save.data.sideSeen || []).includes('p11')) {
+      await G.ui.screens.storybook(pre.pages);
+      G.save.data.sideSeen = [...(G.save.data.sideSeen || []), 'p11'];
+      if (pre.card && G.save.addCard(pre.card)) await G.ui.screens.card(pre.card);
+    }
     this.unfocus();
     this.cutscene(false);
     // ── 프로메테우스 구출 ──
@@ -178,7 +186,7 @@ export default class Labor11 extends Stage {
     await until(() => G.player.pos.z < -20);
     this.checkpointAt(0, -20);
     this.cutscene(true);
-    this.focus(0, -32, 0.85);
+    this.focus(-3, -32, 0.85);
     await this.say('prometheus', '으으… 사람들에게 불을 준 벌로, 나는 이 바위에 묶여 있다네…');
     const eagle = this.add(new FlyBoss({ sprite: 'eagle', x: 6, z: -34, hp: 460, exp: 70, coins: 20, title: '거대 독수리', flyHeight: 4.5 }));
     eagle.active = false;
@@ -202,7 +210,7 @@ export default class Labor11 extends Stage {
     G.fx.starPop(this.prom.pos, 1.3);
     G.audio.jingle('reward');
     this.cutscene(true);
-    this.focus(0, -33, 0.75);
+    this.focus(-4, -33, 0.75);
     await this.talk([
       ['prometheus_free', '고맙네, 헤라클레스! 드디어 자유야!'],
       ['prometheus_free', '황금사과는 아틀라스에게 부탁하게. 정원의 요정들이 그의 딸들이거든.'],
@@ -280,6 +288,7 @@ export default class Labor11 extends Stage {
     G.input.btn.dash.classList.add('hidden');
     G.input.btn.skill.classList.add('hidden');
     G.input.btn.swap.classList.add('hidden');
+    G.input.btn.special.classList.add('hidden');
     let tilt = 0, vel = 0, held = 0, push = 0, pushT = 0;
     const goal = G.debug.auto ? 0.5 : 15;
     await until(() => {
@@ -307,7 +316,7 @@ export default class Labor11 extends Stage {
       return held >= goal;
     });
     box.remove();
-    ['attack', 'dash'].forEach((b) => G.input.btn[b].classList.remove('hidden'));
+    ['attack', 'dash', 'special'].forEach((b) => G.input.btn[b].classList.remove('hidden'));
     G.ui.hud.updateButtons();
     G.input.setVisible(false);
     G.audio.jingle('star');

@@ -121,6 +121,7 @@ class ParticleSystem {
 }
 
 const tmpColor = new THREE.Color();
+const TMP_V = new THREE.Vector3();
 function rgb(hex) {
   tmpColor.setHex(hex, THREE.LinearSRGBColorSpace);
   return [tmpColor.r, tmpColor.g, tmpColor.b];
@@ -368,7 +369,7 @@ export class FX {
       }
     }
     // DOM 숫자
-    const v = new THREE.Vector3();
+    const v = TMP_V;
     const w = innerWidth, h = innerHeight;
     for (let i = this.nums.length - 1; i >= 0; i--) {
       const n = this.nums[i];

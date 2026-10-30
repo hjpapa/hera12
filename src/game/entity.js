@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { G } from '../core/context.js';
 import { Billboard } from '../render/billboard.js';
-import { TAU } from '../core/util.js';
+import { TAU, clamp, damp } from '../core/util.js';
 
 const SHADOW_GEO = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 let shadowMat = null;
@@ -53,6 +53,14 @@ export class Entity {
       this.shadow.renderOrder = 2;
     }
     this.name = o.name || '';
+    // 걷는 모양: 사람(biped) · 네발(quad) · 없음(none: 나는 것, 사물)
+    const paint = o.sprite ? (G.sprites.def(o.sprite).paint || '') : '';
+    this.walkStyle = o.walkStyle ?? (paint === 'humanoid' ? 'biped' : paint === 'quadruped' || paint === 'crab' ? 'quad' : 'none');
+    if (this.visual) this.visual.legH = this.walkStyle === 'quad' ? 0.36 : 0.28;
+    this.stepPhase = Math.random() * TAU;
+    this.walkSpeed = 0;
+    this._lx = this.pos.x;
+    this._lz = this.pos.z;
   }
 
   get height() {
@@ -104,7 +112,7 @@ export class Entity {
     const kd = Math.exp(-9 * dt);
     this.knock.x *= kd;
     this.knock.z *= kd;
-    if (!this.flying) {
+    if (!this.flying && !this.noGravity) {
       if (this.y > 0 || this.vy > 0) {
         this.vy -= this.gravity * dt;
         this.y += this.vy * dt;
@@ -135,7 +143,36 @@ export class Entity {
     this.squashDur = t;
   }
 
+  // 실제로 움직인 거리로 걸음 위상을 돌린다 (빨리 가면 발걸음도 빨라짐)
+  trackSteps(dt) {
+    const moved = Math.min(1, Math.hypot(this.pos.x - this._lx, this.pos.z - this._lz));
+    this._lx = this.pos.x;
+    this._lz = this.pos.z;
+    if (dt <= 0) return;
+    this.walkSpeed = damp(this.walkSpeed, moved / dt, 14, dt);
+    this.stepPhase += moved * (this.stepRate ?? (this.walkStyle === 'quad' ? 1.7 : 2.3));
+  }
+
+  // 공통 걷기 연출: 통통 튀기 + 뒤뚱 + 다리 흔들기 + 발 디딜 때 살짝 납작
+  walkAnim(v, scale = 1) {
+    const k = clamp((this.walkSpeed - 0.4) / 2.6, 0, 1) * scale;
+    if (k <= 0 || this.walkStyle === 'none') {
+      v.sway = 0;
+      return false;
+    }
+    const s = Math.sin(this.stepPhase), c = Math.cos(this.stepPhase);
+    const quad = this.walkStyle === 'quad';
+    v.lift = Math.abs(s) * (quad ? 0.08 : 0.13) * k * (this.walkBob ?? 1);
+    v.roll = s * (quad ? 0.025 : 0.07) * k;
+    v.sway = c * (quad ? 0.06 : 0.045) * k;
+    const contact = 1 - Math.abs(s);
+    v.sx *= 1 + contact * 0.05 * k;
+    v.sy *= 1 - contact * 0.05 * k;
+    return true;
+  }
+
   syncVisual(dt) {
+    this.trackSteps(dt);
     const v = this.visual;
     if (v) {
       v.group.position.set(this.pos.x, this.y, this.pos.z);

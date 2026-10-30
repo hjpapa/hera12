@@ -11,8 +11,14 @@ const QUAD_PORTRAIT = [0.5, 0.0, 0.5, 0.62];
 
 export const SPRITES = {
   // ── 플레이어 ──
-  hercules: { paint: 'humanoid', worldH: 2.2, o: HERC, portrait: HUMAN_PORTRAIT },
-  hercules_lion: { paint: 'humanoid', worldH: 2.3, o: { ...HERC, hood: 'lion', acc: [] }, portrait: [0.08, 0.0, 0.84, 0.66] },
+  // hand: 무기를 쥐는 손 [가로 0~1, 아래에서 0~1, (true면 무기가 몸 뒤)]
+  hercules: { paint: 'humanoid', worldH: 2.2, o: HERC, portrait: HUMAN_PORTRAIT, hand: [0.69, 0.3] },
+  hercules_lion: { paint: 'humanoid', worldH: 2.3, o: { ...HERC, hood: 'lion', acc: [] }, portrait: [0.08, 0.0, 0.84, 0.66], hand: [0.69, 0.28] },
+  // 뒷모습·옆모습 (Codex 그림이 있을 때만 게임이 사용, 옆모습은 오른쪽을 봄)
+  hercules_back: { paint: 'humanoid', worldH: 2.2, o: HERC, portrait: HUMAN_PORTRAIT, hand: [0.7, 0.3, true] },
+  hercules_side: { paint: 'humanoid', worldH: 2.2, o: HERC, portrait: HUMAN_PORTRAIT, hand: [0.6, 0.3] },
+  hercules_lion_back: { paint: 'humanoid', worldH: 2.3, o: { ...HERC, hood: 'lion', acc: [] }, portrait: [0.08, 0.0, 0.84, 0.66], hand: [0.7, 0.28, true] },
+  hercules_lion_side: { paint: 'humanoid', worldH: 2.3, o: { ...HERC, hood: 'lion', acc: [] }, portrait: [0.08, 0.0, 0.84, 0.66], hand: [0.6, 0.28] },
   hercules_hold: { paint: 'humanoid', worldH: 2.3, o: { ...HERC, hood: 'lion', acc: ['sweat'], armsUp: true, eyes: 'worried', mouth: 'grin' }, portrait: [0.08, 0.1, 0.84, 0.66] },
   hercules_baby: { paint: 'humanoid', worldH: 1.4, o: { build: 'baby', skin: '#f7c9a0', hair: '#5a3418', hairStyle: 'curly', tunic: '#ffffff', trim: '#8fd4ff', belt: false, eyes: 'happy', mouth: 'grin' }, portrait: [0.1, 0.12, 0.8, 0.7] },
   iphicles: { paint: 'humanoid', worldH: 1.4, o: { build: 'baby', skin: '#f7c9a0', hair: '#c98a4a', hairStyle: 'short', tunic: '#ffffff', trim: '#ffb0c0', belt: false, eyes: 'closed', mouth: 'o' }, portrait: [0.1, 0.12, 0.8, 0.7] },
@@ -48,6 +54,20 @@ export const SPRITES = {
   charon: { paint: 'humanoid', worldH: 2.4, o: { hood: 'dark', hoodColor: '#3d3355', tunic: '#3d3355', trim: '#7a6aa0', robe: true, held: 'oar', skin: '#c8c0d8' }, portrait: [0.1, 0.0, 0.8, 0.62] },
   hades: { paint: 'humanoid', worldH: 2.6, o: { build: 'big', skin: '#c8c8e0', hair: '#1a1424', hairStyle: 'long', tunic: '#2a1e3a', trim: '#7cf0ff', robe: true, cape: '#1a1424', beard: '#1a1424', held: 'bident', acc: ['dark_crown'], eyes: 'normal', mouth: 'flat' }, portrait: HUMAN_PORTRAIT },
   persephone: { paint: 'humanoid', worldH: 2.15, o: { skin: '#f7d2b0', hair: '#8a3a2a', hairStyle: 'long', tunic: '#6aa860', trim: '#ff8fb4', robe: true, acc: ['flower'], held: 'flower' }, portrait: HUMAN_PORTRAIT },
+  // ── 뒷이야기 인물 (그림책·대사용) ──
+  apollo: { paint: 'humanoid', worldH: 2.25, o: { skin: '#f7d2b0', hair: '#ffcf3a', hairStyle: 'curly', tunic: '#ffffff', trim: '#f5c542', cape: '#ff9a2a', held: 'bow', acc: ['laurel'], mouth: 'smile' }, portrait: HUMAN_PORTRAIT },
+  theseus: { paint: 'humanoid', worldH: 2.2, o: { skin: '#f2c194', hair: '#e0b050', hairStyle: 'short', tunic: '#3a8fd8', trim: '#ffffff', cape: '#c0392b', held: 'staff', eyes: 'worried', mouth: 'o' }, portrait: HUMAN_PORTRAIT },
+  theseus_free: { paint: 'humanoid', worldH: 2.2, o: { skin: '#f2c194', hair: '#e0b050', hairStyle: 'short', tunic: '#3a8fd8', trim: '#ffffff', cape: '#c0392b', eyes: 'happy', mouth: 'grin' }, portrait: HUMAN_PORTRAIT },
+  alcestis: { paint: 'humanoid', worldH: 2.1, o: { skin: '#f7d2b0', hair: '#6a3a1a', hairStyle: 'longbun', tunic: '#f4efe4', trim: '#8fc8f0', robe: true, acc: ['veil'], veil: '#e8f4ff', eyes: 'happy' }, portrait: HUMAN_PORTRAIT },
+  admetus: { paint: 'humanoid', worldH: 2.2, o: { skin: '#f2c194', hair: '#3a2a1a', hairStyle: 'short', tunic: '#7a5ab0', trim: '#f5c542', robe: true, beard: '#3a2a1a', acc: ['crown'], eyes: 'worried' }, portrait: HUMAN_PORTRAIT },
+  thanatos: { paint: 'humanoid', worldH: 2.3, o: { skin: '#d8d8e8', hair: '#2a2a3a', hairStyle: 'long', tunic: '#2a2a3a', trim: '#8a8aa0', robe: true, wings: true, eyes: 'closed', mouth: 'flat' }, portrait: HUMAN_PORTRAIT },
+  hesione: { paint: 'humanoid', worldH: 2.1, o: { skin: '#f7d2b0', hair: '#2a1a1a', hairStyle: 'long', tunic: '#ff9ac0', trim: '#f5c542', robe: true, acc: ['crown'], eyes: 'worried', chains: true }, portrait: HUMAN_PORTRAIT },
+  sea_monster: { paint: 'serpentHead', worldH: 3.2, o: { body: '#3a7ab8', belly: '#a8e0ff', eyes: 'angry', frill: '#2a5a90' }, portrait: [0.1, 0.0, 0.8, 0.7] },
+  cacus: { paint: 'humanoid', worldH: 3.2, o: { build: 'giant', skin: '#a07060', hair: '#2a1a1a', hairStyle: 'spiky', tunic: '#4a3a3a', trim: '#ff8a2a', beard: '#2a1a1a', eyes: 'angry', mouth: 'smirk' }, portrait: [0.18, 0.0, 0.64, 0.5] },
+  antaeus: { paint: 'humanoid', worldH: 3.4, o: { build: 'giant', skin: '#c08050', hair: '#5a3a1a', hairStyle: 'curly', tunic: '#c8a060', trim: '#6b4a2b', beard: '#5a3a1a', eyes: 'angry', mouth: 'grin' }, portrait: [0.18, 0.0, 0.64, 0.5] },
+  arete: { paint: 'humanoid', worldH: 2.2, o: { skin: '#f7d2b0', hair: '#5a3a22', hairStyle: 'longbun', tunic: '#ffffff', trim: '#3a8fd8', robe: true, acc: ['laurel'], eyes: 'normal', mouth: 'smile' }, portrait: HUMAN_PORTRAIT },
+  kakia: { paint: 'humanoid', worldH: 2.2, o: { skin: '#f7d2b0', hair: '#e86a9a', hairStyle: 'long', tunic: '#ff8ad0', trim: '#ffe24a', robe: true, acc: ['flower'], held: 'apple', eyes: 'happy', mouth: 'grin' }, portrait: HUMAN_PORTRAIT },
+  chiron: { paint: 'quadruped', worldH: 2.9, o: { type: 'horse', body: '#c8b8a0', centaur: true, beard: '#f0f0f0', hair: '#f0f0f0', skin: '#e8c8a8' }, portrait: [0.48, 0.0, 0.52, 0.5] },
   villager: { paint: 'humanoid', worldH: 2.05, o: { skin: '#f2c194', hair: '#3a2a1a', hairStyle: 'short', tunic: '#e8d49a', trim: '#7fae4a', mouth: 'grin' }, portrait: HUMAN_PORTRAIT },
   villager2: { paint: 'humanoid', worldH: 2.0, o: { skin: '#f7d2b0', hair: '#c98a4a', hairStyle: 'bun', tunic: '#f0a0a0', trim: '#ffffff', robe: true }, portrait: HUMAN_PORTRAIT },
   merchant: { paint: 'humanoid', worldH: 2.1, o: { build: 'big', skin: '#e8b890', hair: '#2a1a1a', hairStyle: 'bald', tunic: '#3a8fd8', trim: '#f5c542', beard: '#2a1a1a', mouth: 'grin', eyes: 'happy' }, portrait: HUMAN_PORTRAIT },

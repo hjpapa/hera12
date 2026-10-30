@@ -8,6 +8,7 @@ export function startBot() {
     if (!p || !G.world || G.paused) return;
     const inp = G.input;
     const setStick = (x, y) => { inp.stick.x = x; inp.stick.y = y; };
+    if (G.ui.hud.mashState) { setStick(0, 0); inp.press('attack'); return; }
     const gt0 = G.guide.target;
     if (p.context && (p.context.icon !== 'talk' || (gt0 && p.context.entity === gt0))) { setStick(0, 0); inp.press('attack'); return; }
     // 막혔으면 옆으로 비켜 가기

@@ -60,9 +60,11 @@ class Deer extends Entity {
     if (this.running) {
       v.lift = Math.abs(Math.sin(this.time * 14)) * 0.5;
       v.roll = -0.15;
+      v.sway = Math.cos(this.time * 14) * 0.09;
     } else {
       v.lift = 0;
       v.roll = Math.sin(this.time * 2) * 0.03;
+      v.sway = 0;
     }
     if (Math.random() < dt * 5) G.fx.sparkle(this.pos, { color: 0xffe86a, size: 0.3, h: 1.4 });
   }
@@ -71,6 +73,7 @@ class Deer extends Entity {
 export default class Labor03 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['deer', 'deer_tired', 'artemis']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 4 };
     this.music = 'chase';
     this.season = 0;
@@ -192,7 +195,12 @@ export default class Labor03 extends Stage {
       ['artemis', '멈춰라! 내 사슴을 어디로 데려가느냐!'],
       ['hercules', '아르테미스 여신님, 죄송해요. 에우리스테우스 왕의 과업이라서요.'],
       ['hercules', '왕에게 보여 주기만 하고, 꼭 여신님께 돌려드릴게요. 약속해요!'],
-      ['artemis', '…거짓말을 하지 않는 눈이구나. 좋다, 허락하마.'],
+    ]);
+    const apo = this.add(new NPC({ sprite: 'apollo', x: ar.pos.x + 2.2, z: ar.pos.z - 0.6, lookAtPlayer: true }));
+    G.fx.starPop(apo.pos, 1);
+    await this.talk([
+      ['apollo', '누나, 이 젊은이 말이 맞는 것 같아. 거짓말을 하는 눈이 아니야.'],
+      ['artemis', '…그래, 아폴론. 거짓말을 하지 않는 눈이구나. 좋다, 허락하마.'],
     ]);
     G.ui.hud.flash('gold');
     await this.banner('아르테미스의 허락!', '사슴을 데려가도 좋다', 1.8);

@@ -25,7 +25,7 @@ class LionBoss extends Boss {
   damageFilter(info) {
     if (this.grabbable || this.fleeing) return { blocked: true, text: '쿵!', sound: 'thud' };
     if (info.type === 'arrow' || info.type === 'poison') return { blocked: true, text: '팅!', sound: 'ting', color: '#ffffff' };
-    const add = info.big ? 22 : 9;
+    const add = info.type === 'special' ? 50 : info.big ? 22 : 9;
     this.daze = Math.min(100, this.daze + add);
     this.flash(0.1);
     this.squash(0.18, 0.18);
@@ -95,6 +95,7 @@ class LionBoss extends Boss {
 export default class Labor01 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['molorchus', 'wolf', 'lion', 'lion_dizzy', 'boulder']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 3 };
   }
 

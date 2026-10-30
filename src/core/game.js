@@ -19,14 +19,23 @@ export class Game {
     this.last = performance.now();
     this.slow = null;
     this.loading = false;
+    // 휴대폰 최적화: 프레임 제한, 자동 해상도
+    this.acc = 0;
+    this.minFrameMs = 1000 / 61;
+    this.resScale = 1;
+    this.perf = { ema: 16.7, t: 0, good: 0, settle: 2 };
+    this.pauseFrame = false;
     G.game = this;
   }
 
   init() {
     const canvas = document.getElementById('game');
-    const r = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // 고해상도 휴대폰은 계단 현상이 잘 안 보이므로 안티앨리어싱을 꺼서 GPU를 아낀다
+    const dpr = window.devicePixelRatio || 1;
+    const aa = !(G.isTouch && dpr >= 2);
+    const r = new THREE.WebGLRenderer({ canvas, antialias: aa, powerPreference: 'high-performance', stencil: false });
     r.outputColorSpace = THREE.SRGBColorSpace;
-    r.shadowMap.type = THREE.PCFSoftShadowMap;
+    r.shadowMap.type = G.isTouch ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     G.renderer = r;
     const scene = new THREE.Scene();
     G.scene = scene;
@@ -99,21 +108,74 @@ export class Game {
   quality() {
     const q = G.save.data.settings.quality;
     if (q !== 'auto') return q;
-    return G.isTouch ? 'mid' : 'high';
+    if (!G.isTouch) return 'high';
+    // 메모리·코어가 적은 휴대폰은 처음부터 가볍게
+    const lowEnd = (navigator.deviceMemory && navigator.deviceMemory <= 3) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+    return lowEnd ? 'low' : 'mid';
+  }
+
+  basePixelRatio() {
+    const q = this.quality();
+    const dpr = window.devicePixelRatio || 1;
+    return q === 'high' ? Math.min(dpr, 2) : q === 'mid' ? Math.min(dpr, 1.5) : Math.min(dpr, 1.1);
+  }
+
+  applyPixelRatio() {
+    const auto = G.save.data.settings.quality === 'auto';
+    const pr = auto ? Math.max(0.75, this.basePixelRatio() * this.resScale) : this.basePixelRatio();
+    if (Math.abs(G.renderer.getPixelRatio() - pr) > 0.01) {
+      G.renderer.setPixelRatio(pr);
+      this.resize();
+    }
+  }
+
+  // 프레임이 느리면 해상도를 조금씩 낮추고, 여유가 생기면 다시 올린다 (자동 화질일 때만)
+  trackPerf(ms) {
+    if (G.save.data.settings.quality !== 'auto' || this.loading || document.hidden) return;
+    const P = this.perf;
+    P.ema = P.ema * 0.9 + Math.min(ms, 60) * 0.1;
+    P.t += ms / 1000;
+    if (P.settle > 0) {
+      P.settle -= ms / 1000;
+      return;
+    }
+    if (P.t < 1.5) return;
+    P.t = 0;
+    if (P.ema > 22 && this.resScale > 0.62) {
+      this.resScale = Math.max(0.6, this.resScale - 0.15);
+      P.good = 0;
+      P.settle = 1;
+      this.applyPixelRatio();
+    } else if (P.ema > 26 && G.renderer.shadowMap.enabled && this.resScale <= 0.62) {
+      // 해상도를 최대한 낮췄는데도 느리면 그림자를 끈다
+      this.setShadows(false);
+      P.settle = 1;
+    } else if (P.ema < 17.8) {
+      P.good++;
+      if (P.good >= 4 && this.resScale < 1) {
+        this.resScale = Math.min(1, this.resScale + 0.1);
+        P.good = 0;
+        P.settle = 1;
+        this.applyPixelRatio();
+      }
+    } else P.good = 0;
+  }
+
+  setShadows(on) {
+    const r = G.renderer;
+    if (r.shadowMap.enabled === on) return;
+    r.shadowMap.enabled = on;
+    G.scene.traverse((o) => {
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => (m.needsUpdate = true));
+    });
   }
 
   applyQuality() {
     const q = this.quality();
-    const r = G.renderer;
-    const dpr = window.devicePixelRatio || 1;
-    r.setPixelRatio(q === 'high' ? Math.min(dpr, 2) : q === 'mid' ? Math.min(dpr, 1.5) : 1);
-    const shadows = q !== 'low';
-    if (r.shadowMap.enabled !== shadows) {
-      r.shadowMap.enabled = shadows;
-      G.scene.traverse((o) => {
-        if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => (m.needsUpdate = true));
-      });
-    }
+    this.resScale = 1;
+    this.perf.settle = 2;
+    G.renderer.setPixelRatio(this.basePixelRatio());
+    this.setShadows(q !== 'low');
     const size = q === 'high' ? 2048 : 1024;
     if (this.sun.shadow.mapSize.x !== size) {
       this.sun.shadow.mapSize.set(size, size);
@@ -149,6 +211,7 @@ export class Game {
   }
 
   setSky(top, bottom, fog = bottom, near = 45, far = 130) {
+    G.scene.background?.dispose?.();
     G.scene.background = skyTexture(top, bottom);
     const fc = new THREE.Color(fog);
     G.scene.fog = new THREE.Fog(fc, near, far);
@@ -191,6 +254,7 @@ export class Game {
     G.timeScale = 1;
     G.hitstop = 0;
     this.slow = null;
+    G.sprites.releaseUnused();
     G.debug.god = G.params.has('god');
     G.debug.auto = G.params.has('auto');
 
@@ -225,6 +289,7 @@ export class Game {
     G.ui.hud.updateAll();
     G.ui.hud.show(true);
     stage.afterBuild?.();
+    this.prewarm(stage);
     G.audio.music(stage.music);
     resume('loading');
     this.loading = false;
@@ -233,6 +298,32 @@ export class Game {
     await G.ui.screens.fade(false, 0.4);
     stage.startTime = G.time;
     stage.run().catch((e) => console.error('[stage]', e));
+  }
+
+  // 처음 보이는 순간 버벅이지 않도록 그림을 GPU에 올리고 셰이더를 미리 만든다
+  prewarm(stage) {
+    const r = G.renderer;
+    const ids = new Set(stage.preload || []);
+    for (const e of G.world.entities) if (e.sprite) ids.add(e.sprite);
+    for (const id of ids) {
+      try { r.initTexture(G.sprites.texture(id)); } catch (e) { /* 무시 */ }
+    }
+    if (!this.fxWarm) {
+      // 공격 예고·충격파·베기 효과 셰이더 (처음 쓸 때 멈칫하지 않게)
+      this.fxWarm = true;
+      const far = { x: 0, z: -9999 };
+      const tmp = [
+        G.fx.telegraphCircle(far, 1, 0.1),
+        G.fx.telegraphLine(far, { x: 0, z: 1 }, 1, 1, 0.1),
+        G.fx.ring(far, { life: 0.1 }),
+        G.fx.slash(far, 0, { life: 0.1 }),
+      ];
+      try { r.compile(G.scene, G.camera); } catch (e) { /* 무시 */ }
+      tmp.forEach((o) => o.remove());
+    } else {
+      try { r.compile(G.scene, G.camera); } catch (e) { /* 무시 */ }
+    }
+    this.perf.settle = 2.5;
   }
 
   goHub(params = {}) {
@@ -247,10 +338,24 @@ export class Game {
   // ───────── 루프 ─────────
   frame(now) {
     requestAnimationFrame((t) => this.frame(t));
-    const rawDt = Math.min((now - this.last) / 1000, 1 / 20);
-    this.last = now;
     if (this.simMode) return;
-    this.step(rawDt, true);
+    // 120Hz 화면에서도 최대 60fps (배터리·발열 절약)
+    const since = now - (this.prevRaf ?? now);
+    this.prevRaf = now;
+    this.acc = Math.min(this.acc + since, this.minFrameMs * 3);
+    if (this.acc < this.minFrameMs) return;
+    this.acc %= this.minFrameMs;
+    const ms = now - this.last;
+    const rawDt = Math.min(ms / 1000, 1 / 20);
+    this.last = now;
+    this.trackPerf(ms);
+    // 대화·메뉴로 멈춰 있을 땐 30fps로만 그림
+    let render = true;
+    if (G.paused && !this.loading) {
+      this.pauseFrame = !this.pauseFrame;
+      render = this.pauseFrame;
+    }
+    this.step(rawDt, render);
   }
 
   step(rawDt, render) {
@@ -309,7 +414,7 @@ export class Game {
       this.fpsT += rawDt;
       this.fpsN++;
       if (this.fpsT > 0.5) {
-        this.fpsEl.textContent = `${Math.round(this.fpsN / this.fpsT)} fps · ${G.renderer.info.render.calls} calls · ${G.world?.entities.length ?? 0} ent`;
+        this.fpsEl.textContent = `${Math.round(this.fpsN / this.fpsT)} fps · ${G.renderer.info.render.calls} calls · ${G.world?.entities.length ?? 0} ent · x${G.renderer.getPixelRatio().toFixed(2)}`;
         this.fpsT = 0;
         this.fpsN = 0;
       }
@@ -348,7 +453,9 @@ export class Game {
     if (extraStar !== null) challenge = extraStar;
     const stars = [true, treasure, challenge];
     const merged = stars.map((s, i) => s || (prev.stars || [])[i] || false);
-    save.data.labors[n] = { cleared: true, stars: merged, bestTime: Math.min(prev.bestTime || 9999, elapsed) };
+    const st = G.stage?.stats || { kills: 0, maxCombo: 0, coins: 0 };
+    const newCombo = st.maxCombo > (prev.bestCombo || 0);
+    save.data.labors[n] = { cleared: true, stars: merged, bestTime: Math.min(prev.bestTime || 9999, elapsed), bestCombo: Math.max(prev.bestCombo || 0, st.maxCombo) };
     // 보상 (처음 깼을 때)
     await G.stage.giveRewards?.();
     for (const c of L.cards) {
@@ -356,7 +463,7 @@ export class Game {
     }
     if (first) save.data.pendingReport = n;
     save.write();
-    await G.ui.screens.result({ n, stars, labels: ['과업 완료', '숨은 황금 항아리 찾기', L.challenge.label], time: elapsed });
+    await G.ui.screens.result({ n, stars, labels: ['과업 완료', '숨은 황금 항아리 찾기', L.challenge.label], time: elapsed, stats: st, newCombo: newCombo && !first });
     await this.goHub(first ? { report: n } : {});
   }
 }

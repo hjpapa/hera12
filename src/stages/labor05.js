@@ -21,6 +21,7 @@ const STRIP_GEO = new THREE.PlaneGeometry(1, 1, 1, 4).rotateX(-Math.PI / 2).tran
 export default class Labor05 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['augeas', 'poop', 'cow', 'fly', 'boulder']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 4 };
     this.poops = [];
     this.strips = { W: [], E: [] };

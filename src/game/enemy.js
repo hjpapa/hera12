@@ -90,6 +90,7 @@ export class Enemy extends Entity {
     this.alive = false;
     this.dying = true;
     this.dieT = 0;
+    if (G.stage?.stats) G.stage.stats.kills++;
     this.solid = false;
     this.clearTele();
     this.setDizzy(false);
@@ -184,16 +185,16 @@ export class Enemy extends Entity {
   }
 
   animate(dt, v) {
-    const moving = Math.hypot(this.vel.x, this.vel.z) > 0.5;
+    v.lift = 0;
+    v.roll = 0;
+    v.sway = 0;
     if (this.state === 'windup') {
       v.sx *= 1 + Math.sin(this.time * 40) * 0.03;
       v.roll = 0.12;
-    } else if (moving && !this.flying) {
-      v.lift = Math.abs(Math.sin(this.time * 12)) * 0.1 * (this.walkBob ?? 1);
-      v.roll = Math.sin(this.time * 12) * 0.05;
-    } else {
-      v.lift = 0;
-      v.roll = this.stunned ? Math.sin(this.time * 6) * 0.1 : 0;
+    } else if (this.stunned) {
+      v.roll = Math.sin(this.time * 6) * 0.1;
+    } else if (!this.flying) {
+      this.walkAnim(v);
     }
     if (this.flying && !this.stunned) {
       v.sy *= 1 + Math.sin(this.time * 14) * 0.06;

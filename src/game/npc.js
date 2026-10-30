@@ -97,8 +97,9 @@ export class NPC extends Entity {
   }
 
   animate(dt, v) {
-    v.lift = Math.hypot(this.vel.x, this.vel.z) > 0.3 ? Math.abs(Math.sin(this.time * 10)) * 0.1 : 0;
-    v.sy *= 1 + Math.sin(this.time * 2.2) * 0.012;
+    v.lift = 0;
+    v.roll = 0;
+    if (!this.walkAnim(v)) v.sy *= 1 + Math.sin(this.time * 2.2) * 0.012;
     if (this.mark) {
       this.mark.position.set(this.pos.x, this.y + this.height + 0.6 + Math.sin(this.time * 4) * 0.12, this.pos.z);
     }
@@ -177,8 +178,8 @@ export class Follower extends Entity {
   }
 
   animate(dt, v) {
-    const moving = Math.hypot(this.vel.x, this.vel.z) > 0.5;
-    v.lift = moving ? Math.abs(Math.sin(this.time * 11)) * 0.12 * this.walkBob : 0;
-    v.roll = moving ? Math.sin(this.time * 11) * 0.05 : 0;
+    v.lift = 0;
+    v.roll = 0;
+    if (!this.walkAnim(v)) v.sy *= 1 + Math.sin(this.time * 2.4) * 0.015;
   }
 }

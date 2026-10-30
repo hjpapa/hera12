@@ -7,6 +7,7 @@ const KEYMAP = {
   KeyK: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash', KeyX: 'dash',
   KeyL: 'skill', KeyC: 'skill',
   KeyQ: 'swap', KeyV: 'swap',
+  KeyE: 'special', KeyU: 'special',
   Escape: 'pause', KeyP: 'pause',
 };
 
@@ -34,6 +35,7 @@ export class Input {
       <div class="btn btn-dash" data-b="dash"><img alt=""></div>
       <div class="btn btn-skill" data-b="skill"><img alt=""><svg viewBox="0 0 100 100" class="cd"><circle cx="50" cy="50" r="46"/></svg></div>
       <div class="btn btn-swap" data-b="swap"><img alt=""></div>
+      <div class="btn btn-special" data-b="special"><img alt=""><svg viewBox="0 0 100 100" class="gauge"><circle cx="50" cy="50" r="46"/></svg><span class="lbl">필살기!</span></div>
     `;
     root.appendChild(c);
     this.el = c;
@@ -172,7 +174,7 @@ export class Input {
       if (!p) continue;
       const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
       if (Math.hypot(ax, ay) > 0.2) { mx += ax; my -= ay; }
-      const map = { 0: 'attack', 1: 'dash', 2: 'skill', 3: 'swap', 9: 'pause' };
+      const map = { 0: 'attack', 1: 'dash', 2: 'skill', 3: 'swap', 5: 'special', 7: 'special', 9: 'pause' };
       for (const [i, name] of Object.entries(map)) {
         const v = p.buttons[i]?.pressed;
         if (v && !this.padPrev[i]) this.press(name);

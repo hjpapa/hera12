@@ -91,6 +91,7 @@ class Cerberus extends Boss {
 export default class Labor12 extends Stage {
   constructor(p) {
     super(p);
+    this.preload = ['hermes', 'charon', 'hades', 'persephone', 'bat', 'skeleton', 'cerberus', 'cerberus_happy']; // 처음 보일 때 멈칫하지 않게 미리 올릴 그림
     this.spawn = { x: 0, z: 4 };
     this.music = 'underworld';
   }
@@ -124,6 +125,9 @@ export default class Labor12 extends Stage {
     this.hermes = this.npc('hermes', 3, -2, null);
     this.charon = this.npc('charon', 3.2, -46, null);
     this.hades = this.npc('hades', -2, -95, null);
+    // 잊어버림의 의자에 붙어 버린 테세우스
+    B.rock(-6.3, -89.2, { s: 1.1, color: 0x6a5a80 });
+    this.theseus = this.npc('theseus', -5.6, -88, null, { lookAtPlayer: true });
     this.persephone = this.npc('persephone', 2, -95, null);
   }
 
@@ -163,6 +167,10 @@ export default class Labor12 extends Stage {
     ]);
     await this.boatRide();
     this.checkpointAt(0, -86);
+    this.unfocus();
+    this.cutscene(false);
+    await this.rescueTheseus();
+    this.cutscene(true);
     // 하데스
     this.focus(0, -92, 0.7);
     G.player.faceToward(0, -95);
@@ -250,6 +258,50 @@ export default class Labor12 extends Stage {
     pal.leader = G.player;
     await this.giveRewards();
     await this.complete();
+  }
+
+  // 신화: 저승에서 "잊어버림의 의자"에 붙은 영웅 테세우스를 구해 줌
+  async rescueTheseus() {
+    const t = this.theseus;
+    this.objective('의자에 붙어 버린 사람을 도와주자', t);
+    await this.talk([
+      ['theseus', '도와주세요! 이 의자에 앉았더니 몸이 딱 붙어 버렸어요. 자꾸 모든 걸 잊어버릴 것 같아요…'],
+      ['hermes', '(멀리서) 그건 "잊어버림의 의자"야! 아테네의 영웅 테세우스가 저기 붙잡혀 있었구나.'],
+    ]);
+    let go = false;
+    const it = this.world.interact({ entity: t, radius: 3, icon: 'grab', label: '구해 주기', action: () => (go = true) });
+    await until(() => go);
+    this.world.removeInteract(it);
+    const p = G.player;
+    p.state = 'grab';
+    p.pos.set(t.pos.x + 1.5, 0, t.pos.z + 0.4);
+    p.faceToward(t.pos.x, t.pos.z);
+    let ok = false;
+    while (!ok) {
+      ok = await G.ui.hud.mash({ title: '영차영차!', hint: '큰 버튼을 톡톡톡! 의자에서 떼어 내자', goal: 10, time: 8, decay: 0.8, onTap: () => {
+        t.squash(0.1, 0.15);
+        p.squash(0.08, 0.12);
+      } });
+      if (!ok) await this.say('glau', '조금만 더 힘을 내! 다시!');
+    }
+    p.state = 'move';
+    G.audio.play('pop');
+    G.audio.jingle('reward');
+    t.visual.setSprite('theseus_free');
+    t.vy = 6;
+    G.fx.starPop(t.pos, 1);
+    this.objective(null);
+    await this.talk([
+      ['theseus_free', '고마워요, 헤라클레스 형님! 하마터면 영원히 여기 붙어 있을 뻔했어요!'],
+      ['hercules', '조심해서 돌아가요, 테세우스! 우리 둘 다 지상에서 다시 만나요!'],
+    ]);
+    if (G.save.addCard('theseus')) await G.ui.screens.card('theseus');
+    for (let i = 0; i < 20; i++) {
+      t.pos.z += 0.25;
+      t.visual.setOpacity(1 - i / 20);
+      await waitReal(0.03);
+    }
+    t.world.remove(t);
   }
 
   async boatRide() {

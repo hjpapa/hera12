@@ -208,6 +208,176 @@ const SCENES = {
     constellation(x, 512, 280, 460, 12);
     hill(x, '#1a2a2a', 500, 14);
   },
+
+  // ───────── 프롤로그 보강 ─────────
+  p_milkyway(x) {
+    bg(x, '#141a40', '#3a3a7a');
+    stars(x, 90);
+    // 하늘을 가로지르는 은하수
+    for (let i = 0; i < 260; i++) {
+      const t = i / 260;
+      const px = t * W, py = 80 + Math.sin(t * 3) * 40 + ((i * 53) % 70) - 35;
+      x.globalAlpha = 0.25 + ((i * 17) % 50) / 100;
+      x.fillStyle = i % 3 ? '#fff6e8' : '#cfe0ff';
+      x.beginPath(); x.arc(px, py, 2 + (i % 4), 0, 7); x.fill();
+    }
+    x.globalAlpha = 1;
+    cloud(x, 200, 470, 2.2, '#c8c8f0');
+    put(x, 'hera', 300, 470, 300);
+    put(x, 'hercules_baby', 620, 470, 180);
+    put(x, 'hermes', 820, 480, 240, true);
+  },
+  p_teachers(x) {
+    bg(x, '#8fd0ff', '#f6f0d8');
+    hill(x, '#9cc965', 440);
+    put(x, 'hercules', 512, 500, 280);
+    // 배운 것들: 활 · 창 · 몽둥이 · 리라 · 마차 바퀴
+    const items = [['w_bow', 170, 230], ['w_spear', 300, 170], ['w_club', 730, 170], ['w_rattle', 860, 240]];
+    for (const [id, px, py] of items) put(x, id, px, py + 120, 150);
+    x.strokeStyle = '#3a2618';
+    x.lineWidth = 8;
+    x.fillStyle = '#f5c542';
+    x.beginPath(); x.moveTo(470, 60); x.quadraticCurveTo(440, 150, 512, 170); x.quadraticCurveTo(584, 150, 554, 60); x.stroke();
+    for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(490 + i * 15, 80); x.lineTo(490 + i * 15, 160); x.lineWidth = 3; x.stroke(); }
+    x.lineWidth = 8;
+    x.beginPath(); x.arc(512, 170, 18, 0, 7); x.fill(); x.stroke();
+  },
+  p_crossroads(x) {
+    bg(x, '#a8d8ff', '#fff4e0');
+    // 왼쪽: 꽃과 과자가 가득한 쉬운 내리막길 / 오른쪽: 바위 오르막 끝에 빛나는 신전
+    hill(x, '#9cc965', 470, 10);
+    x.fillStyle = '#f0e0b0';
+    x.beginPath(); x.moveTo(470, 576); x.lineTo(560, 576); x.lineTo(300, 300); x.lineTo(240, 300); x.closePath(); x.fill();
+    x.fillStyle = '#c8b898';
+    x.beginPath(); x.moveTo(470, 576); x.lineTo(560, 576); x.lineTo(820, 200); x.lineTo(770, 200); x.closePath(); x.fill();
+    for (let i = 0; i < 18; i++) { x.fillStyle = ['#ff8fb4', '#ffd84a', '#ffffff'][i % 3]; x.beginPath(); x.arc(120 + (i * 37) % 260, 330 + (i * 23) % 120, 9, 0, 7); x.fill(); }
+    temple(x, 860, 190, 0.35);
+    starShape(x, 860, 60, 26);
+    put(x, 'kakia', 230, 430, 220);
+    put(x, 'arete', 760, 400, 220, true);
+    put(x, 'hercules', 512, 560, 230);
+  },
+
+  // ───────── 과업 뒷이야기 ─────────
+  s1_molorchus(x) {
+    bg(x, '#f6b06a', '#fde0b8');
+    hill(x, '#c8b060', 450);
+    x.fillStyle = '#f4efe4'; x.fillRect(600, 380, 90, 80); x.strokeStyle = '#3a2618'; x.lineWidth = 6; x.strokeRect(600, 380, 90, 80);
+    for (let i = 0; i < 6; i++) { x.globalAlpha = 0.4; x.fillStyle = '#ffffff'; x.beginPath(); x.arc(645 + Math.sin(i) * 20, 350 - i * 40, 20 + i * 4, 0, 7); x.fill(); }
+    x.globalAlpha = 1;
+    put(x, 'molorchus', 470, 500, 250);
+    put(x, 'hercules_lion', 300, 510, 280);
+  },
+  s2_rock(x) {
+    bg(x, '#9ab8a0', '#e0ecd0');
+    hill(x, '#7a9a4a', 440);
+    x.fillStyle = '#e8d8a8'; x.fillRect(0, 470, W, 60);
+    x.fillStyle = '#9a9488'; x.strokeStyle = '#3a2618'; x.lineWidth = 8;
+    x.beginPath(); x.ellipse(560, 440, 170, 110, 0, 0, 7); x.fill(); x.stroke();
+    x.fillStyle = '#f5c542'; x.beginPath(); x.arc(470, 520, 14, 0, 7); x.fill();
+    put(x, 'iolaus', 250, 520, 200);
+    put(x, 'hercules_lion', 840, 520, 260, true);
+  },
+  s3_hyperborea(x) {
+    bg(x, '#1a2a50', '#7a9ac8');
+    for (let i = 0; i < 5; i++) { x.globalAlpha = 0.25; x.fillStyle = ['#7af0c0', '#a0ff9a', '#8ad8ff'][i % 3]; x.fillRect(0, 60 + i * 30, W, 26); }
+    x.globalAlpha = 1;
+    stars(x, 50);
+    hill(x, '#f4f8ff', 440, 20);
+    put(x, 'deer', 640, 470, 220);
+    put(x, 'artemis', 330, 480, 240);
+    put(x, 'apollo', 200, 480, 240);
+  },
+  s4_chiron(x) {
+    bg(x, '#1d2350', '#4a5aa0');
+    stars(x, 80);
+    hill(x, '#3a5a3a', 460);
+    put(x, 'chiron', 470, 500, 300);
+    put(x, 'iolaus', 760, 510, 190, true);
+    starShape(x, 470, 90, 22, '#fff6c8');
+  },
+  s5_olympics(x) {
+    bg(x, '#8fd0ff', '#fff4d8');
+    x.fillStyle = '#d9a46a'; x.beginPath(); x.ellipse(512, 470, 470, 110, 0, 0, 7); x.fill();
+    x.fillStyle = '#9cc965'; x.beginPath(); x.ellipse(512, 470, 380, 70, 0, 0, 7); x.fill();
+    x.fillStyle = '#3a8fd8'; x.fillRect(0, 540, W, 40);
+    for (let i = 0; i < 6; i++) { x.fillStyle = ['#d43c3c', '#3a8fd8', '#f5c542'][i % 3]; x.fillRect(80 + i * 170, 200, 12, 120); x.fillRect(92 + i * 170, 200, 50, 30); }
+    put(x, 'hercules_lion', 512, 470, 260);
+    put(x, 'villager', 250, 480, 170);
+    put(x, 'villager2', 780, 480, 170, true);
+  },
+  s6_ares(x) {
+    bg(x, '#7ab8f0', '#d8f0ff');
+    x.fillStyle = '#2a7ad8'; x.fillRect(0, 380, W, 200);
+    x.fillStyle = '#8a7a6a'; x.beginPath(); x.ellipse(820, 400, 140, 50, 0, Math.PI, 0); x.fill();
+    for (let i = 0; i < 6; i++) put(x, 'stym_bird', 300 + i * 90, 300 - (i % 2) * 60, 90);
+  },
+  s7_promise(x) {
+    bg(x, '#5ab8ff', '#eaf8ff');
+    x.fillStyle = '#2a8ad8'; x.fillRect(0, 420, W, 160);
+    put(x, 'bull', 640, 470, 250);
+    put(x, 'minos', 320, 480, 250);
+  },
+  s8_alcestis(x) {
+    bg(x, '#6a6a98', '#d8d8f0');
+    temple(x, 512, 440, 0.9);
+    put(x, 'thanatos', 360, 520, 260);
+    put(x, 'hercules_lion', 640, 520, 270, true);
+  },
+  s8_return(x) {
+    bg(x, '#ffd8a0', '#fff6e8');
+    temple(x, 512, 440, 0.9);
+    put(x, 'admetus', 330, 520, 250);
+    put(x, 'alcestis', 520, 520, 240);
+    put(x, 'hercules_lion', 720, 520, 270, true);
+  },
+  s9_hesione(x) {
+    bg(x, '#5a8ad0', '#c8e0ff');
+    x.fillStyle = '#2a6ab8'; x.fillRect(0, 380, W, 200);
+    x.fillStyle = '#8a7a6a'; x.fillRect(150, 330, 160, 70);
+    put(x, 'hesione', 230, 340, 200);
+    put(x, 'sea_monster', 560, 500, 320);
+    put(x, 'hercules_lion', 860, 420, 260, true);
+  },
+  s10_cacus(x) {
+    bg(x, '#7a8aa8', '#e8e0d0');
+    hill(x, '#8a9a6a', 460);
+    x.fillStyle = '#2a2018'; x.beginPath(); x.ellipse(260, 470, 150, 120, 0, Math.PI, 0); x.fill();
+    // 거꾸로 찍힌 발자국 (동굴에서 나오는 것처럼 보임)
+    x.fillStyle = '#5a4030';
+    for (let i = 0; i < 6; i++) { const px = 440 + i * 60, py = 500 + (i % 2) * 18; x.beginPath(); x.ellipse(px, py, 10, 14, 0.4, 0, 7); x.fill(); x.beginPath(); x.ellipse(px + 14, py, 10, 14, -0.4, 0, 7); x.fill(); }
+    put(x, 'cacus', 240, 470, 260);
+    put(x, 'cow_red', 380, 470, 120, true);
+    put(x, 'hercules_lion', 880, 530, 260, true);
+  },
+  s11_antaeus(x) {
+    bg(x, '#ffb86a', '#ffe8c0');
+    hill(x, '#e8c890', 480, 10);
+    put(x, 'hercules_lion', 512, 540, 280);
+    x.save();
+    x.translate(512, 250);
+    x.rotate(-0.25);
+    const src = G.sprites.source('antaeus');
+    x.drawImage(src, -150, -170, 300, 300 * (src.height / src.width));
+    x.restore();
+  },
+  s12_theseus(x) {
+    bg(x, '#2a2048', '#5a4a7a');
+    for (let i = 0; i < 20; i++) { x.globalAlpha = 0.35; x.fillStyle = '#8ad8ff'; x.beginPath(); x.arc((i * 131) % W, (i * 71) % 350, 10, 0, 7); x.fill(); }
+    x.globalAlpha = 1;
+    x.fillStyle = '#6a5a80'; x.strokeStyle = '#3a2618'; x.lineWidth = 8;
+    x.fillRect(240, 330, 180, 170); x.strokeRect(240, 330, 180, 170);
+    put(x, 'theseus_free', 330, 520, 250);
+    put(x, 'hercules_lion', 650, 520, 270, true);
+  },
+  s12_poplar(x) {
+    bg(x, '#ffe8a0', '#fff8e8');
+    hill(x, '#9cc965', 450);
+    x.fillStyle = '#2a2018'; x.beginPath(); x.ellipse(170, 470, 140, 110, 0, Math.PI, 0); x.fill();
+    for (let i = 0; i < 3; i++) { x.fillStyle = '#e8f0e8'; x.strokeStyle = '#3a2618'; x.lineWidth = 6; x.beginPath(); x.ellipse(820 + i * 40, 250 + i * 30, 60, 90, 0.3, 0, 7); x.fill(); x.stroke(); }
+    put(x, 'hercules_lion', 512, 520, 280);
+    put(x, 'cerberus_happy', 260, 520, 180);
+  },
 };
 
 export function storyCanvas(id) {

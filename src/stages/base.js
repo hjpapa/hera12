@@ -20,6 +20,8 @@ export class Stage {
     this.skill = null;
     this.treasure = false;
     this.rewardsGiven = false;
+    this.stats = { kills: 0, maxCombo: 0, coins: 0 };
+    this.preload = [];
   }
 
   get labor() {

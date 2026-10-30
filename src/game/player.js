@@ -8,8 +8,9 @@ import { computeStats, expToNext } from './stats.js';
 import { Arrow } from './items.js';
 import { damp, dampAngle, angleDiff, clamp, easeOutCubic, TAU, rand } from '../core/util.js';
 
-// 손 위치 (몸 그림 기준, 미터): 무기 손잡이가 여기에 붙는다
-const HAND = { x: 0.44, y: 0.63 };
+// 손 위치 기본값 (앞모습 그림 기준, 0~1 비율: 왼쪽→오른쪽, 아래→위). 그림별 값은 sprites.js 의 hand
+const HAND_FRONT = [0.69, 0.28];
+const HERO_MAX = 100;
 
 // 3단 콤보 표 (GAME_DESIGN.md 3장)
 const COMBO = [
@@ -49,10 +50,80 @@ export class Player extends Entity {
     this.weaponRest = 0.5;
     this.weaponAngle = 0.5;
     this.showBowT = 0;
-    this.visual.addPart('weapon', 'w_club', { x: HAND.x, y: HAND.y, z: 0.04 });
+    this.visual.addPart('weapon', 'w_club', { x: 0.44, y: 0.63, z: 0.04 });
     this.addXray();
     this.spearHits = new Set();
+    // 앞·뒤·옆 모습 (그림이 있을 때만 바뀜)
+    this.view = 'front';
+    this.viewWant = 'front';
+    this.viewT = 0;
+    this.turnT = 0;
+    this.idleT = 0;
+    this.lastStep = 0;
+    // 필살기 게이지 (스테이지가 바뀌어도 이어짐)
+    this.hero = G.save.data.hero || 0;
+    this.lastPerfect = -9;
+    this.visual.snapFlip();
     G.player = this;
+  }
+
+  get baseSprite() {
+    return G.save.has('lion') ? 'hercules_lion' : 'hercules';
+  }
+
+  // 움직이는 방향(화면 기준)에 맞춰 앞·뒤·옆 그림 고르기
+  updateView(dt, moving) {
+    if (this.holding) return;
+    const base = this.baseSprite;
+    const hasBack = G.sprites.hasAsset(base + '_back');
+    const hasSide = G.sprites.hasAsset(base + '_side');
+    let want = 'front';
+    if (hasBack || hasSide) {
+      const d = this.dir, r = G.rig.right, f = G.rig.forward;
+      const sx = d.x * r.x + d.z * r.z;
+      const sz = d.x * f.x + d.z * f.z;
+      if (hasSide && Math.abs(sx) > 0.62 && Math.abs(sx) >= Math.abs(sz) * 0.85) want = 'side';
+      else if (hasBack && sz > 0.42) want = 'back';
+      // 가만히 서 있으면 잠시 뒤 얼굴이 보이게 앞모습으로
+      if (!moving && this.state === 'move' && this.idleT > 1.4) want = 'front';
+    }
+    if (want !== this.viewWant) {
+      this.viewWant = want;
+      this.viewT = 0;
+    }
+    this.viewT += dt;
+    // 아주 잠깐 바뀐 방향에는 반응하지 않음 (깜빡임 방지)
+    if (this.viewWant !== this.view && (this.viewT > 0.07 || this.state !== 'move')) {
+      this.view = this.viewWant;
+      this.turnT = 0.14;
+      this.visual.setSprite(this.view === 'front' ? base : base + '_' + this.view);
+    } else if (this.view === 'front' && this.visual.body.id !== base) {
+      this.visual.setSprite(base);
+    }
+  }
+
+  // 무기를 쥐는 손 위치 (미터, 몸 그림 기준)
+  handPos() {
+    const b = this.visual.body;
+    const h = G.sprites.def(b.id).hand || HAND_FRONT;
+    return { x: (h[0] - 0.5) * b.w, y: h[1] * b.h, back: !!h[2] };
+  }
+
+  addHero(n) {
+    if (this.hero >= HERO_MAX) return;
+    this.hero = Math.min(HERO_MAX, this.hero + n);
+    G.save.data.hero = this.hero;
+    if (this.hero >= HERO_MAX) {
+      G.audio.play('star');
+      G.audio.play('magic');
+      G.fx.burst(this.pos, { count: 14, color: [0xffe86a, 0xffffff], tile: 'star', size: 0.5, speed: 4, gravity: -1 });
+      if (!G.save.data.specialHint) {
+        G.save.data.specialHint = true;
+        G.ui.hud.toast('필살기 준비 완료! 반짝이는 별 버튼을 눌러!', 3);
+        G.audio.speak('필살기 준비 완료! 반짝이는 별 버튼을 눌러!', { pitch: 1.35 });
+      }
+    }
+    G.ui.hud.updateHero();
   }
 
   // 나무·건물 뒤에 가려지면 노란 실루엣으로 보이게
@@ -82,7 +153,9 @@ export class Player extends Entity {
 
   refreshLook() {
     if (this.holding) return;
-    this.visual.setSprite(G.save.has('lion') ? 'hercules_lion' : 'hercules');
+    this.view = 'front';
+    this.viewWant = 'front';
+    this.visual.setSprite(this.baseSprite);
   }
 
   setWeaponMode(mode) {
@@ -104,7 +177,7 @@ export class Player extends Entity {
   }
 
   get canAct() {
-    return !this.locked && this.alive && this.state !== 'faint' && this.state !== 'grab';
+    return !this.locked && this.alive && this.state !== 'faint' && this.state !== 'grab' && this.state !== 'special';
   }
 
   update(dt) {
@@ -135,6 +208,10 @@ export class Player extends Entity {
           G.audio.play('confirm');
           c.action(c);
         } else this.attackBuffer = 0.28;
+      }
+      if (inp.pressed.special && this.hero >= HERO_MAX && (this.state === 'move' || this.state === 'attack' || this.state === 'hurt')) {
+        this.startSpecial();
+        return;
       }
       if (inp.pressed.swap && this.skills.length > 1) {
         const i = this.skills.indexOf(this.skill);
@@ -228,6 +305,22 @@ export class Player extends Entity {
         this.vel.x = damp(this.vel.x, 0, 10, dt);
         this.vel.z = damp(this.vel.z, 0, 10, dt);
         if (this.stateT > 0.25) this.state = 'move';
+        break;
+      }
+      case 'special': {
+        // 높이 뛰어올랐다가 → 땅을 쾅!
+        this.vel.set(0, 0, 0);
+        const t = this.stateT;
+        if (t < 0.38) {
+          this.y = Math.sin((t / 0.38) * Math.PI * 0.5) * 2.6;
+          if (Math.random() < 0.8) G.fx.sparkle({ x: this.pos.x, y: this.y, z: this.pos.z }, { color: 0xffe86a, size: 0.5, h: 1.2 });
+        } else if (!this.slammed) {
+          this.y = Math.max(0, 2.6 - ((t - 0.38) / 0.1) * 2.6);
+          if (this.y <= 0) this.specialImpact();
+        } else if (t > 0.85) {
+          this.state = 'move';
+          this.noGravity = false;
+        }
         break;
       }
       case 'faint':
@@ -422,7 +515,11 @@ export class Player extends Entity {
 
   hurt(amount, from, { knock = 7, ignoreInvuln = false } = {}) {
     if (!this.alive || this.state === 'faint' || G.debug.god) return false;
-    if (!ignoreInvuln && (this.invuln > 0 || this.state === 'dash')) return false;
+    if (!ignoreInvuln && this.state === 'dash' && !this.locked) {
+      this.perfectDodge();
+      return false;
+    }
+    if (!ignoreInvuln && (this.invuln > 0 || this.state === 'dash' || this.state === 'special')) return false;
     if (this.locked && !ignoreInvuln) return false;
     amount *= 1 - this.stats.defense;
     this.hp = Math.max(0, this.hp - amount);
@@ -449,6 +546,60 @@ export class Player extends Entity {
     if (this.hp <= 0) this.faint();
     else if (this.hp <= 3 && this.stats.apple && !this.appleUsed) this.eatApple();
     return true;
+  }
+
+  // 구르는 순간 공격을 피하면: 슬로모션 + 칭찬 + 필살기 게이지
+  perfectDodge() {
+    if (G.time - this.lastPerfect < 0.9) return;
+    this.lastPerfect = G.time;
+    G.game.slowmo(0.35, 0.55);
+    G.audio.play('magic');
+    G.fx.text({ x: this.pos.x, y: this.y + 0.6, z: this.pos.z }, '완벽한 회피!', { color: '#8fe0ff', size: 1.2, cls: 'word', rise: 2.2 });
+    G.fx.burst(this.pos, { count: 12, color: [0x8fe0ff, 0xffffff], tile: 'star', size: 0.45, speed: 5, gravity: 0 });
+    G.fx.ring(this.pos, { r0: 0.4, r1: 2.6, life: 0.35, color: 0x8fe0ff });
+    this.dashCd = 0;
+    this.addHero(20);
+  }
+
+  // 필살기 "헤라클레스 강타": 하늘로 뛰어올라 땅을 쾅! 주변 적을 모두 날려 버린다
+  startSpecial() {
+    this.state = 'special';
+    this.stateT = 0;
+    this.slammed = false;
+    this.noGravity = true;
+    this.vy = 0;
+    this.attackBuffer = 0;
+    this.invuln = Math.max(this.invuln, 1.0);
+    this.hero = 0;
+    G.save.data.hero = 0;
+    G.ui.hud.updateHero();
+    G.audio.play('whoosh');
+    G.audio.play('charge');
+    G.fx.ring(this.pos, { r0: 2.5, r1: 0.4, life: 0.35, color: 0xffe86a });
+    G.rig.shake(0.2);
+  }
+
+  specialImpact() {
+    this.slammed = true;
+    this.y = 0;
+    const pos = { x: this.pos.x, y: 0, z: this.pos.z };
+    hitstop(0.14);
+    G.rig.shake(1);
+    G.ui.hud.flash('gold');
+    G.input.vibrate([30, 30, 70]);
+    G.audio.play('hit_big');
+    G.audio.play('stomp');
+    G.audio.play('thunder');
+    G.fx.ring(pos, { r0: 1, r1: 8.5, life: 0.6, color: 0xffe08a });
+    G.fx.ring(pos, { r0: 0.5, r1: 5.5, life: 0.45, color: 0xffffff });
+    G.fx.dust(pos, { count: 20, size: 2, speed: 8 });
+    G.fx.burst(pos, { count: 30, color: [0xffe86a, 0xffffff, 0xffb84a], tile: 'star', size: 0.8, speed: 11 });
+    G.fx.text({ x: pos.x, y: 1, z: pos.z }, '헤라클레스 강타!', { color: '#ffd84a', size: 1.6, cls: 'word crit', rise: 2.8, life: 1.5 });
+    for (const e of Combat.inRadius(pos, 8, { includeProps: true })) {
+      Combat.hitEnemy(e, { amount: this.stats.atk * 5, from: pos, knock: 14, big: true, type: 'special', canCrit: false, launch: 8, hitstop: 0.02 });
+      if (e.alive && !e.boss && e.stun) e.stun(2.2);
+    }
+    G.game.slowmo(0.4, 0.5);
   }
 
   eatApple() {
@@ -513,6 +664,7 @@ export class Player extends Entity {
 
   gainCoins(n) {
     G.save.data.coins += n;
+    if (G.stage?.stats) G.stage.stats.coins += n;
     G.ui.hud.updateCoins();
   }
 
@@ -522,12 +674,23 @@ export class Player extends Entity {
     let roll = 0, lift = 0;
     const moving = Math.hypot(this.vel.x, this.vel.z) > 0.6;
     let target = this.weaponRest;
+    v.sway = 0;
+    this.idleT = moving ? 0 : this.idleT + dt;
+    this.updateView(dt, moving);
     switch (this.state) {
       case 'move':
-        if (moving) {
-          lift = Math.abs(Math.sin(this.time * 13)) * 0.14;
-          roll = Math.sin(this.time * 13) * 0.06;
-          target = 0.35 + Math.sin(this.time * 13) * 0.15;
+        if (this.walkAnim(v)) {
+          lift = v.lift;
+          roll = v.roll;
+          // 가는 쪽으로 몸을 살짝 기울임
+          if (this.view !== 'back') roll -= 0.05;
+          target = 0.35 + Math.sin(this.stepPhase) * 0.18;
+          // 발이 땅에 닿을 때마다 작은 먼지
+          const stepN = Math.floor(this.stepPhase / Math.PI);
+          if (stepN !== this.lastStep) {
+            this.lastStep = stepN;
+            if (this.walkSpeed > 3) G.fx.dust(this.pos, { count: 1, size: 0.55, speed: 0.8, alpha: 0.5 });
+          }
         } else {
           lift = Math.sin(this.time * 2.5) * 0.02 + 0.02;
           v.sy *= 1 + Math.sin(this.time * 2.5) * 0.015;
@@ -573,18 +736,37 @@ export class Player extends Entity {
         v.sx *= 1.1;
         v.sy *= 0.92;
         break;
+      case 'special':
+        if (!this.slammed) {
+          roll = -(this.stateT / 0.48) * TAU;
+          this.weaponAngle = 2.6;
+          v.sx *= 0.92;
+          v.sy *= 1.08;
+        } else {
+          this.weaponAngle = -2.2;
+          v.sx *= 1.15;
+          v.sy *= 0.88;
+        }
+        break;
+    }
+    // 앞·뒤·옆이 바뀔 때 살짝 얇아졌다 펴짐 (그림이 갑자기 바뀌어 보이지 않게)
+    if (this.turnT > 0) {
+      this.turnT -= dt;
+      v.sx *= 1 - Math.sin((Math.max(0, this.turnT) / 0.14) * Math.PI) * 0.35;
     }
     if (this.state !== 'faint') v.roll = roll;
     else v.roll = roll;
     v.lift = lift;
     const w = v.parts.weapon;
     if (w) {
+      const hand = this.handPos();
+      const z = hand.back ? -0.04 : 0.04; // 뒷모습일 땐 무기가 몸 뒤로
       if (w.id === 'w_bow') {
         // 활은 가운데 손잡이를 쥐고 똑바로 세워 앞으로 내밈
-        w.mesh.position.set(HAND.x + 0.12, HAND.y + 0.15 - w.h * 0.5, 0.04);
+        w.mesh.position.set(hand.x + 0.12, hand.y + 0.15 - w.h * 0.5, z);
         w.mesh.rotation.z = 0;
       } else {
-        w.mesh.position.set(HAND.x, HAND.y, 0.04);
+        w.mesh.position.set(hand.x, hand.y, z);
         w.mesh.rotation.z = this.weaponAngle;
       }
       w.mesh.visible = this.state !== 'faint' && !this.holding;

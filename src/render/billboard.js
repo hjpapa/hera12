@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { G } from '../core/context.js';
 
-export const GEO = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+// 세로로 6칸 나눈 판: 아래쪽(다리)만 흔들어 걷는 느낌을 낸다
+export const GEO = new THREE.PlaneGeometry(1, 1, 1, 6).translate(0, 0.5, 0);
 const GEO_CENTER = new THREE.PlaneGeometry(1, 1);
 
 export const SPRITE_UNIFORMS = {
@@ -14,11 +15,15 @@ export const SPRITE_UNIFORMS = {
 };
 
 const VERT = /* glsl */ `
+  uniform vec2 uSway; // x: 발끝이 옆으로 움직이는 양(판 너비 비율), y: 다리 영역 높이(0~1)
   varying vec2 vUv;
   varying float vDepth;
   void main() {
     vUv = uv;
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vec3 p = position;
+    float w = clamp(1.0 - uv.y / max(0.01, uSway.y), 0.0, 1.0);
+    p.x += uSway.x * w * w;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
     vDepth = -mv.z;
     gl_Position = projectionMatrix * mv;
   }
@@ -57,6 +62,7 @@ export function spriteMaterial(tex) {
       uFlashColor: { value: new THREE.Color(1, 1, 1) },
       uOpacity: { value: 1 },
       uColor: { value: new THREE.Color(1, 1, 1) },
+      uSway: { value: new THREE.Vector2(0, 0.28) },
       ...SPRITE_UNIFORMS,
     },
     vertexShader: VERT,
@@ -73,6 +79,9 @@ export class Billboard {
     this.scale = scale;
     this.parts = {};
     this.flip = 1;
+    this.flipCur = 1; // 종이가 뒤집히듯 부드럽게 돌기
+    this.sway = 0;
+    this.legH = 0.28;
     this.sx = 1;
     this.sy = 1;
     this.roll = 0;
@@ -183,10 +192,23 @@ export class Billboard {
     this.bar.t = 3;
   }
 
+  // 바로 뒤집기 (처음 놓을 때)
+  snapFlip() {
+    this.flipCur = this.flip;
+  }
+
   update(dt) {
     this.group.quaternion.copy(G.camera.quaternion);
-    this.pivot.scale.set(this.flip * this.sx, this.sy, 1);
+    // 좌우 방향이 바뀌면 0.15초 동안 종이처럼 얇아졌다가 반대로 펼쳐짐
+    const step = dt * 13;
+    if (this.flipCur < this.flip) this.flipCur = Math.min(this.flip, this.flipCur + step);
+    else if (this.flipCur > this.flip) this.flipCur = Math.max(this.flip, this.flipCur - step);
+    const fx = Math.abs(this.flipCur) < 0.08 ? 0.08 * Math.sign(this.flip) : this.flipCur;
+    this.pivot.scale.set(fx * this.sx, this.sy, 1);
     this.pivot.rotation.z = this.roll * this.flip;
+    const su = this.body.mat.uniforms.uSway.value;
+    su.x = this.sway;
+    su.y = this.legH;
     this.pivot.position.y = this.lift;
     if (this.bar && this.bar.t > 0) {
       this.bar.t -= dt;

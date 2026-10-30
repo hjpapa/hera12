@@ -303,7 +303,7 @@ export class Screens {
   }
 
   // ───────── 과업 결과 ─────────
-  result({ n, stars, labels, time }) {
+  result({ n, stars, labels, time, stats = null, newCombo = false }) {
     if (G.debug.auto) {
       console.log('[result]', n, stars);
       return Promise.resolve();
@@ -320,6 +320,12 @@ export class Screens {
         el('div', 'rs-item' + (s ? ' got' : ''), items, (s ? '✔ ' : '· ') + labels[i]);
         if (s) setTimeout(() => { st.classList.add('pop'); G.audio.jingle('star'); }, 500 + i * 450);
       });
+      if (stats) {
+        const rec = el('div', 'rs-rec', o);
+        el('div', 'rec', rec, `<b>${stats.maxCombo}</b>최고 콤보${newCombo ? '<i>새 기록!</i>' : ''}`);
+        el('div', 'rec', rec, `<b>${stats.kills}</b>물리친 적`);
+        el('div', 'rec', rec, `<b>${stats.coins}</b>모은 동전`);
+      }
       if (time) el('div', 'rs-time', o, `걸린 시간 ${Math.floor(time / 60)}분 ${Math.floor(time % 60)}초`);
       setTimeout(() => this.button(o, '마을로!', 'gold big', () => { this.close(o); res(); }), 1700);
       G.audio.jingle('victory');

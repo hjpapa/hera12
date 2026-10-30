@@ -19,6 +19,14 @@ export const LABORS = [
     ],
     jar: true,
     rewards: [{ gear: 'lion', icon: 'heart', title: '사자 망토', desc: '하트가 1칸 늘고, 받는 피해가 줄어요!' }],
+    side: {
+      title: '몰로르코스와의 약속',
+      card: null,
+      pages: [
+        { art: 's1_molorchus', text: '헤라클레스가 돌아온 날은 꼭 서른 번째 날이었어요. 몰로르코스 할아버지는 헤라클레스가 돌아오지 않는 줄 알고 슬퍼하고 있었지요.' },
+        { art: 's1_molorchus', text: '\'살아 돌아왔구나!\' 두 사람은 함께 제우스 신께 감사 제사를 올렸어요. 약속을 지킨 덕분에 모두 웃을 수 있었답니다.' }
+      ],
+    },
     cards: ['leo'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -38,6 +46,14 @@ export const LABORS = [
       ['glau', '(속닥) 신화에서는 왕이 이 과업을 인정하지 않아서 과업이 열 개에서 열두 개로 늘었대. 하지만 우리 게임에서는 당연히 인정!'],
     ],
     rewards: [{ skill: 'bow', icon: 'bow', title: '히드라 독화살', desc: '스킬 버튼으로 쏴요. 자동으로 조준돼요!' }],
+    side: {
+      title: '황금 머리는 바위 밑에',
+      card: null,
+      pages: [
+        { art: 's2_rock', text: '헤라클레스는 죽지 않는 황금 머리를 레르나에서 엘라이우스로 가는 길가, 아주 큰 바위 밑에 묻었어요.' },
+        { art: 's2_rock', text: '그리고 히드라의 독을 화살촉에 묻혀 두었지요. 이 독화살은 앞으로의 모험에서 여러 번 큰 힘이 되었답니다.' }
+      ],
+    },
     cards: ['hydra', 'cancer'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -54,6 +70,14 @@ export const LABORS = [
       ['hercules', '앗, 약속대로 여신님께 돌아갔네요. 헤헤.'],
     ],
     rewards: [{ gear: 'deer', icon: 'dash', title: '아르테미스의 축복', desc: '구르기가 더 멀리, 더 빠르게!' }],
+    side: {
+      title: '북쪽 끝 나라까지',
+      card: null,
+      pages: [
+        { art: 's3_hyperborea', text: '사슴을 쫓는 동안 헤라클레스는 북풍 너머 \'히페르보레오이\'라는 먼 나라까지 갔대요. 하늘에 오로라가 춤추는 곳이었지요.' },
+        { art: 's3_hyperborea', text: '아르테미스의 쌍둥이 동생 아폴론도 그 이야기를 듣고 \'정말 정직한 영웅이구나!\' 하고 웃었대요.' }
+      ],
+    },
     cards: ['artemis'],
     challenge: { type: 'fast', label: '5분 안에 따라잡기', time: 300 },
   },
@@ -72,6 +96,14 @@ export const LABORS = [
     ],
     jar: true,
     rewards: [{ gear: 'tusk', icon: 'attack', title: '멧돼지 엄니', desc: '공격력이 세졌어요!' }],
+    side: {
+      title: '영웅들의 선생님 케이론',
+      card: 'chiron',
+      pages: [
+        { art: 's4_chiron', text: '켄타우로스 중에는 아주 지혜로운 케이론이 있었어요. 영웅들에게 활쏘기와 약초와 별 보는 법을 가르친 선생님이었지요.' },
+        { art: 's4_chiron', text: '아킬레우스, 이아손 같은 영웅들도 케이론의 제자였대요. 케이론은 나중에 하늘의 별자리가 되었다고 전해져요.' }
+      ],
+    },
     cards: ['centaur'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -88,6 +120,15 @@ export const LABORS = [
       ['hercules', '강물을 끌어온 건 저라고요~ 머리를 쓰는 것도 힘이에요!'],
     ],
     rewards: [{ gear: 'heart5', icon: 'heart', title: '하트 그릇', desc: '하트가 1칸 늘었어요!' }],
+    side: {
+      title: '올림픽의 시작',
+      card: 'olympics',
+      pages: [
+        { art: 's5_olympics', text: '아우게이아스 왕이 약속을 안 지키자, 왕의 아들 필레우스가 \'아버지가 약속하신 걸 제가 들었어요!\' 하고 용감하게 진실을 말했어요.' },
+        { art: 's5_olympics', text: '훗날 헤라클레스는 알페이오스 강가의 올림피아에서 신들께 감사하는 큰 경기를 열었대요.' },
+        { art: 's5_olympics', text: '달리기, 씨름, 마차 경주… 이것이 올림픽의 시작이라는 이야기가 전해져요!' }
+      ],
+    },
     cards: ['alpheus'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -102,6 +143,14 @@ export const LABORS = [
       ['king', '새, 새는 싫어! 깃털 하나라도 가져왔으면 당장 버려!'],
     ],
     rewards: [{ skill: 'rattle', icon: 'rattle', title: '청동 딸랑이', desc: '주변 적을 어지럽게 만들어요!' }],
+    side: {
+      title: '아레스의 섬으로',
+      card: null,
+      pages: [
+        { art: 's6_ares', text: '살아남은 스팀팔로스의 새들은 멀리 전쟁의 신 아레스의 섬으로 날아갔어요.' },
+        { art: 's6_ares', text: '나중에 아르고호를 탄 영웅들이 그 섬을 지날 때, 방패를 쾅쾅 두드려 새들을 쫓아냈대요. 헤라클레스의 딸랑이 작전처럼요!' }
+      ],
+    },
     cards: ['athena'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -118,6 +167,14 @@ export const LABORS = [
     ],
     jar: true,
     rewards: [{ skill: 'spear', icon: 'spear', title: '크레타의 창', desc: '앞으로 쭉 돌진하며 찔러요. 어지러운 적에게 아주 세요!' }],
+    side: {
+      title: '약속을 지키는 마음',
+      card: null,
+      pages: [
+        { art: 's7_promise', text: '미노스 왕은 포세이돈 신과의 약속을 지키지 않아서 큰일을 겪었어요. 멋진 황소가 아까워서 욕심을 냈거든요.' },
+        { art: 's7_promise', text: '헤라클레스는 생각했어요. \'약속은 작은 것이라도 꼭 지켜야 해. 그게 진짜 힘센 사람이야.\'' }
+      ],
+    },
     cards: ['taurus'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -132,6 +189,16 @@ export const LABORS = [
       ['king', '마, 말은 저쪽에 묶어 둬! 멀리! 더 멀리!'],
     ],
     rewards: [{ gear: 'horse', icon: 'dash', title: '바람의 말굽', desc: '더 빨리 달려요!' }],
+    prelude: {
+      title: '가는 길에 만난 친구',
+      card: 'alcestis',
+      pages: [
+        { art: 's8_alcestis', text: '트라키아로 가는 길에 헤라클레스는 친구 아드메토스 왕의 궁전에 들렀어요. 그런데 궁전이 온통 슬픔에 잠겨 있었어요.' },
+        { art: 's8_alcestis', text: '왕비 알케스티스가 남편 대신 저승으로 떠나게 된 거예요. 헤라클레스는 죽음의 신 타나토스를 기다렸다가 씨름을 걸었어요.' },
+        { art: 's8_return', text: '으라차! 씨름에서 진 타나토스는 왕비를 돌려주었어요. 아드메토스 왕은 헤라클레스를 꼭 안아 주었답니다.' },
+        { art: 's8_return', text: '\'고마워, 헤라클레스!\' 친구를 도운 헤라클레스는 다시 힘차게 트라키아로 떠났어요.' }
+      ],
+    },
     cards: ['bucephalus'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -147,6 +214,14 @@ export const LABORS = [
       ['hercules', '…아무것도 아니에요.'],
     ],
     rewards: [{ gear: 'belt', icon: 'attack', title: '아레스의 허리띠', desc: '공격력이 크게 세졌어요!' }],
+    side: {
+      title: '트로이의 바다 괴물',
+      card: 'hesione',
+      pages: [
+        { art: 's9_hesione', text: '아마존에서 돌아오는 길, 트로이 바닷가에서 공주 헤시오네가 바다 괴물에게 바쳐지려 하고 있었어요.' },
+        { art: 's9_hesione', text: '헤라클레스는 활을 쏘고 몽둥이를 휘둘러 바다 괴물을 물리치고 공주를 구했어요. 슬픈 일 뒤에도 헤라클레스는 다시 누군가를 도왔지요.' }
+      ],
+    },
     cards: ['hippolyta'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -161,6 +236,15 @@ export const LABORS = [
       ['king', '소, 소가 이렇게 많이?! 내 마당이 꽉 찼잖아!'],
     ],
     rewards: [{ gear: 'heart10', icon: 'heart', title: '하트 그릇', desc: '하트가 1칸 늘었어요!' }],
+    side: {
+      title: '거꾸로 찍힌 발자국',
+      card: 'cacus',
+      pages: [
+        { art: 's10_cacus', text: '소 떼를 몰고 돌아오던 길, 이탈리아에서 불을 뿜는 거인 카쿠스가 밤에 몰래 소들을 훔쳐 갔어요.' },
+        { art: 's10_cacus', text: '카쿠스는 소의 꼬리를 잡고 뒤로 끌고 갔어요. 발자국이 거꾸로 찍혀서, 소들이 동굴에서 나간 것처럼 보였지요!' },
+        { art: 's10_cacus', text: '그때 동굴 안에서 \'음매~\' 하는 소리! 헤라클레스는 꾀를 알아채고 소들을 되찾았어요.' }
+      ],
+    },
     cards: ['pillars'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -177,6 +261,14 @@ export const LABORS = [
       ['glau', '(신화에서도 황금사과는 결국 아테나 여신이 정원에 되돌려 놓았대!)'],
     ],
     rewards: [{ gear: 'apple', icon: 'apple', title: '황금사과', desc: '하트가 거의 없을 때 한 번, 하트를 모두 채워 줘요!' }],
+    prelude: {
+      title: '땅의 아들 안타이오스',
+      card: 'antaeus',
+      pages: [
+        { art: 's11_antaeus', text: '정원으로 가는 길, 뜨거운 리비아에서 거인 안타이오스가 씨름을 걸어왔어요. 그는 땅에 발이 닿을 때마다 힘이 다시 솟았지요.' },
+        { art: 's11_antaeus', text: '헤라클레스는 꾀를 냈어요. 안타이오스를 번쩍 들어 올려 땅에서 떼어 놓았더니, 힘이 쭉 빠져서 이길 수 있었답니다!' }
+      ],
+    },
     cards: ['draco', 'atlas'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
@@ -196,6 +288,14 @@ export const LABORS = [
     ],
     jar: true,
     rewards: [{ gear: 'cerberus', icon: 'star', title: '케르베로스 친구', desc: '마을에서 케르베로스 인형이 함께해요!' }],
+    side: {
+      title: '하얀 포플러 잎',
+      card: 'poplar',
+      pages: [
+        { art: 's12_poplar', text: '저승에서 나온 헤라클레스는 강가의 포플러 나뭇가지로 관을 만들어 썼대요.' },
+        { art: 's12_poplar', text: '그 뒤로 포플러 잎은 앞은 짙고 뒤는 하얗게 되었다는 전설이 있어요. 저승의 그을음과 헤라클레스의 땀 때문이래요!' }
+      ],
+    },
     cards: ['cerberus'],
     challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
   },
