@@ -100,43 +100,57 @@ export default class Labor09 extends Stage {
 
   async run() {
     await this.intro();
-    this.objective('아마존 여왕을 만나러 가자', this.queen);
-    await until(() => G.player.pos.z < -20);
-    this.cutscene(true);
-    G.player.faceToward(0, -32);
-    this.focus(0, -27, 0.75);
-    await waitReal(0.3);
-    await this.talk([
-      ['hippolyta', '어서 오세요, 영웅 헤라클레스. 당신의 이야기는 이곳까지 들려왔답니다.'],
-      ['hippolyta', '아버지 아레스께 받은 허리띠가 필요하다고요? 좋아요, 기꺼이 드리지요.'],
-      ['hercules', '정말요? 고맙습니다, 여왕님!'],
-    ]);
-    // 헤라의 속임수
-    this.focus(this.hera.pos.x, this.hera.pos.z, 0.7);
-    G.audio.play('laugh');
-    for (let i = 0; i < 6; i++) G.fx.particle({ x: this.hera.pos.x + rand(-0.6, 0.6), y: 2, z: this.hera.pos.z, vy: 1, size: 0.6, life: 1.2, color: 0x2d8f8a, tile: 'leaf' });
-    await this.talk([
-      ['hera_amazon', '모두들! 저 남자가 여왕님을 납치하려 한다!!'],
-      ['amazon', '여왕님을 지켜라!'],
-      ['hercules', '아, 아니에요! 오해예요!'],
-    ]);
-    // 헤라는 사라지고, 아마존들이 공격
-    G.fx.starPop(this.hera.pos, 0.8);
-    this.hera.world.remove(this.hera);
-    const foes = this.amazons.map((a) => {
-      const e = this.enemy({ ...(a.sprite === 'amazon_archer' ? ARCHER : AMAZON), x: a.pos.x, z: a.pos.z });
-      a.world.remove(a);
-      return e;
-    });
-    this.queen.world.remove(this.queen);
-    const q = this.add(new Hippolyta({ x: 0, z: -38 }));
-    q.active = false;
-    this.unfocus();
-    this.cutscene(false);
-    G.audio.music('boss');
-    this.objective('아마존 전사들을 막아내자!');
-    await this.waitDefeated(foes);
-    this.checkpointAt(0, -22);
+    let q;
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      // 헤라의 속임수와 아마존 전사들은 이미 지나간 것으로
+      this.hera.world.remove(this.hera);
+      this.amazons.forEach((a) => a.world.remove(a));
+      this.queen.world.remove(this.queen);
+      q = this.add(new Hippolyta({ x: 0, z: -38 }));
+      q.active = false;
+      G.audio.music('boss');
+      await this.resumeHere(0, -22);
+    } else {
+      this.objective('아마존 여왕을 만나러 가자', this.queen);
+      await until(() => G.player.pos.z < -20);
+      this.cutscene(true);
+      G.player.faceToward(0, -32);
+      this.focus(0, -27, 0.75);
+      await waitReal(0.3);
+      await this.talk([
+        ['hippolyta', '어서 오세요, 영웅 헤라클레스. 당신의 이야기는 이곳까지 들려왔답니다.'],
+        ['hippolyta', '아버지 아레스께 받은 허리띠가 필요하다고요? 좋아요, 기꺼이 드리지요.'],
+        ['hercules', '정말요? 고맙습니다, 여왕님!'],
+      ]);
+      // 헤라의 속임수
+      this.focus(this.hera.pos.x, this.hera.pos.z, 0.7);
+      G.audio.play('laugh');
+      for (let i = 0; i < 6; i++) G.fx.particle({ x: this.hera.pos.x + rand(-0.6, 0.6), y: 2, z: this.hera.pos.z, vy: 1, size: 0.6, life: 1.2, color: 0x2d8f8a, tile: 'leaf' });
+      await this.talk([
+        ['hera_amazon', '모두들! 저 남자가 여왕님을 납치하려 한다!!'],
+        ['amazon', '여왕님을 지켜라!'],
+        ['hercules', '아, 아니에요! 오해예요!'],
+      ]);
+      // 헤라는 사라지고, 아마존들이 공격
+      G.fx.starPop(this.hera.pos, 0.8);
+      this.hera.world.remove(this.hera);
+      const foes = this.amazons.map((a) => {
+        const e = this.enemy({ ...(a.sprite === 'amazon_archer' ? ARCHER : AMAZON), x: a.pos.x, z: a.pos.z });
+        a.world.remove(a);
+        return e;
+      });
+      this.queen.world.remove(this.queen);
+      q = this.add(new Hippolyta({ x: 0, z: -38 }));
+      q.active = false;
+      this.unfocus();
+      this.cutscene(false);
+      G.audio.music('boss');
+      this.objective('아마존 전사들을 막아내자!');
+      await this.waitDefeated(foes);
+      this.checkpointAt(0, -22);
+    }
+    this.saveResume();
     await this.bossIntro(q, '아마존 여왕 히폴리테', { roar: 'warn', lines: [
       ['hippolyta', '나를 속였군요, 헤라클레스! 허리띠는 줄 수 없어요!'],
       ['hercules', '여왕님, 제 말 좀…! 으윽, 어쩔 수 없다!'],

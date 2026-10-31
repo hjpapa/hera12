@@ -200,31 +200,37 @@ export default class Labor02 extends Stage {
 
   async run() {
     await this.intro();
-    await this.talk([
-      ['iolaus', '삼촌! 여기가 레르나 늪이에요. 으, 냄새…'],
-      ['hercules', '이올라오스, 내 뒤에 꼭 붙어 있어!'],
-    ]);
-    this.objective('늪 깊숙이 들어가자', { x: 0, z: -22 });
-    await this.ambush(0, -22, 8, () => this.wave(TOAD, 4, 0, -24, 4.5), { text: '독두꺼비들이다!' });
-    this.checkpointAt(0, -22);
-    this.objective('더 깊이!', { x: -8, z: -42 });
-    await until(() => G.player.pos.z < -36);
-    // 카르키노스
-    const crab = this.add(new Crab({ x: -8, z: -45 }));
-    crab.active = false;
-    await this.say('glau', '부엉! 헤라 여신이 보낸 거대 게야! 집게를 조심해!');
-    crab.active = true;
-    await this.bossIntro(crab, '거대 게 카르키노스', { roar: 'hiss' });
-    await until(() => !crab.alive);
-    G.ui.hud.setBoss(null);
-    G.rig.pair = null;
-    G.audio.music('field');
-    this.toast('카르키노스를 물리쳤다!', 2);
-    this.checkpointAt(-6, -44);
-    await wait(1);
-    this.objective('히드라의 호수로!', { x: 0, z: -62 });
-    await until(() => G.player.pos.z < -56);
-    this.checkpointAt(0, -56);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      await this.resumeHere(0, -56);
+    } else {
+      await this.talk([
+        ['iolaus', '삼촌! 여기가 레르나 늪이에요. 으, 냄새…'],
+        ['hercules', '이올라오스, 내 뒤에 꼭 붙어 있어!'],
+      ]);
+      this.objective('늪 깊숙이 들어가자', { x: 0, z: -22 });
+      await this.ambush(0, -22, 8, () => this.wave(TOAD, 4, 0, -24, 4.5), { text: '독두꺼비들이다!' });
+      this.checkpointAt(0, -22);
+      this.objective('더 깊이!', { x: -8, z: -42 });
+      await until(() => G.player.pos.z < -36);
+      // 카르키노스
+      const crab = this.add(new Crab({ x: -8, z: -45 }));
+      crab.active = false;
+      await this.say('glau', '부엉! 헤라 여신이 보낸 거대 게야! 집게를 조심해!');
+      crab.active = true;
+      await this.bossIntro(crab, '거대 게 카르키노스', { roar: 'hiss' });
+      await until(() => !crab.alive);
+      G.ui.hud.setBoss(null);
+      G.rig.pair = null;
+      G.audio.music('field');
+      this.toast('카르키노스를 물리쳤다!', 2);
+      this.checkpointAt(-6, -44);
+      await wait(1);
+      this.objective('히드라의 호수로!', { x: 0, z: -62 });
+      await until(() => G.player.pos.z < -56);
+      this.checkpointAt(0, -56);
+    }
+    this.saveResume();
     await this.hydraFight();
   }
 

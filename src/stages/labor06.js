@@ -111,45 +111,55 @@ export default class Labor06 extends Stage {
 
   async run() {
     await this.intro();
-    this.objective('호숫가 숲으로 가자', { x: 0, z: -22 });
-    await until(() => G.player.pos.z < -16);
-    this.checkpointAt(0, -18);
-    this.cutscene(true);
-    this.focus(0, -26, 0.85);
-    await this.say('hercules', '새들이 나무 속에 숨어서 나오질 않아… 빨간 눈만 반짝반짝!');
-    const ath = this.add(new NPC({ sprite: 'athena', x: G.player.pos.x + 3, z: G.player.pos.z - 2 }));
-    G.fx.starPop(ath.pos, 1.4);
-    G.audio.play('magic');
-    await this.talk([
-      ['athena', '헤라클레스, 이것을 쓰렴. 대장장이 신 헤파이스토스가 만든 청동 딸랑이란다.'],
-      ['athena', '흔들면 큰 소리가 나서, 숨어 있던 새들이 깜짝 놀라 날아오를 거야.'],
-    ]);
-    await this.giveRewards();
-    G.fx.starPop(ath.pos, 1.2);
-    ath.world.remove(ath);
-    await this.talk([
-      ['glau', '부엉! 나무 가까이 가서 딸랑이(스킬 버튼)를 흔들어!'],
-      ['glau', '새가 날아오르면 ↻ 버튼으로 독화살로 바꿔서 쏴! 딸랑이를 한 번 더 흔들면 새가 어지러워서 떨어져!'],
-    ]);
-    this.unfocus();
-    this.cutscene(false);
-    this.counter(`남은 새 ${this.total}`);
-    // 숲마다 돌며 새 날리기
-    const flyingNow = () => this.birds.some((b) => b.alive && !b.hidden);
-    while (this.killed < this.total) {
-      if (flyingNow()) {
-        this.objective('독화살로 새를 맞히자!');
-        await until(() => !flyingNow());
-      } else {
-        const n = this.nextNest();
-        if (!n) break;
-        this.objective('숲 가까이에서 딸랑이를 흔들자!', { x: n.x, z: n.z + 2 });
-        await until(() => flyingNow() || n.flushed);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      // 숲에 숨은 새들은 이미 다 물리친 것으로
+      this.nests.forEach((n) => (n.flushed = true));
+      this.birds.forEach((b) => this.world.remove(b));
+      this.killed = this.total;
+      await this.resumeHere(0, -24);
+    } else {
+      this.objective('호숫가 숲으로 가자', { x: 0, z: -22 });
+      await until(() => G.player.pos.z < -16);
+      this.checkpointAt(0, -18);
+      this.cutscene(true);
+      this.focus(0, -26, 0.85);
+      await this.say('hercules', '새들이 나무 속에 숨어서 나오질 않아… 빨간 눈만 반짝반짝!');
+      const ath = this.add(new NPC({ sprite: 'athena', x: G.player.pos.x + 3, z: G.player.pos.z - 2 }));
+      G.fx.starPop(ath.pos, 1.4);
+      G.audio.play('magic');
+      await this.talk([
+        ['athena', '헤라클레스, 이것을 쓰렴. 대장장이 신 헤파이스토스가 만든 청동 딸랑이란다.'],
+        ['athena', '흔들면 큰 소리가 나서, 숨어 있던 새들이 깜짝 놀라 날아오를 거야.'],
+      ]);
+      await this.giveRewards();
+      G.fx.starPop(ath.pos, 1.2);
+      ath.world.remove(ath);
+      await this.talk([
+        ['glau', '부엉! 나무 가까이 가서 딸랑이(스킬 버튼)를 흔들어!'],
+        ['glau', '새가 날아오르면 ↻ 버튼으로 독화살로 바꿔서 쏴! 딸랑이를 한 번 더 흔들면 새가 어지러워서 떨어져!'],
+      ]);
+      this.unfocus();
+      this.cutscene(false);
+      this.counter(`남은 새 ${this.total}`);
+      // 숲마다 돌며 새 날리기
+      const flyingNow = () => this.birds.some((b) => b.alive && !b.hidden);
+      while (this.killed < this.total) {
+        if (flyingNow()) {
+          this.objective('독화살로 새를 맞히자!');
+          await until(() => !flyingNow());
+        } else {
+          const n = this.nextNest();
+          if (!n) break;
+          this.objective('숲 가까이에서 딸랑이를 흔들자!', { x: n.x, z: n.z + 2 });
+          await until(() => flyingNow() || n.flushed);
+        }
       }
+      this.counter(null);
+      G.audio.music('field');
+      await wait(0.8);
     }
-    this.counter(null);
-    G.audio.music('field');
-    await wait(0.8);
+    this.saveResume();
     // 대장 새
     const boss = this.add(new FlyBoss({ sprite: 'stym_leader', x: 0, z: -40, hp: 420, exp: 70, coins: 20, title: '스팀팔로스의 대장 새', flyHeight: 4.2 }));
     boss.active = false;

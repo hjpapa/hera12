@@ -142,55 +142,67 @@ export default class Labor12 extends Stage {
 
   async run() {
     await this.intro();
-    this.cutscene(true);
-    this.focus(1.5, -1, 0.7);
-    await this.talk([
-      ['hermes', '안녕, 헤라클레스! 저승 가는 길은 내가 안내하지. 날개 신발로 휙휙~ 따라와!'],
-      ['hercules', '마지막 과업이에요. 꼭 해낼 거예요!'],
-    ]);
-    G.fx.starPop(this.hermes.pos, 0.8);
-    this.hermes.world.remove(this.hermes);
-    this.unfocus();
-    this.cutscene(false);
-    this.objective('저승 길을 따라가자', { x: 0, z: -24 });
-    await this.ambush(0, -22, 9, () => [...this.wave(BAT, 3, 0, -26, 4), ...this.wave(SKELETON, 2, 0, -24, 3), this.add(new ShieldEnemy({ ...SKELETON, x: 0, z: -21 }))], { text: '박쥐와 해골 병사들이다!' });
-    this.checkpointAt(0, -30);
-    // 카론의 도움
-    this.objective('스틱스 강의 뱃사공에게', this.charon);
-    await until(() => G.player.pos.z < -40);
-    this.cutscene(true);
-    this.focus(1.5, -45, 0.7);
-    await this.talk([
-      ['charon', '살아 있는 자는… 이 배에 태울 수 없다…'],
-      ['hercules', '카론 할아버지, 부탁드려요. 꼭 해야 하는 일이에요!'],
-      ['narr', '(헤라클레스가 반짝이는 동전 오볼로스를 내밀어요)'],
-      ['charon', '…흠. 그 눈빛… 겁이 없구나. 좋다, 타거라.'],
-    ]);
-    await this.boatRide();
-    this.checkpointAt(0, -86);
-    this.unfocus();
-    this.cutscene(false);
-    await this.rescueTheseus();
-    this.cutscene(true);
-    // 하데스
-    this.focus(0, -92, 0.7);
-    G.player.faceToward(0, -95);
-    await this.talk([
-      ['hades', '살아 있는 자가 여기까지 오다니… 무슨 일이냐.'],
-      ['hercules', '하데스 님, 케르베로스를 잠깐만 데려가게 해 주세요. 마지막 과업이에요!'],
-      ['persephone', '여보, 이 젊은이의 용기를 보세요.'],
-      ['hades', '…좋다. 단, 무기는 하나도 쓰지 말고 맨손으로 이겨라.'],
-      ['hercules', '맨손이라면 자신 있어요!'],
-    ]);
-    G.player.setWeaponMode('fist');
-    G.player.skillsLocked = true;
-    G.ui.hud.updateButtons();
-    this.toast('몽둥이를 내려놓았다! 맨손 대결!', 2.2);
-    this.unfocus();
-    this.cutscene(false);
-    this.objective('케르베로스가 있는 문으로', { x: 0, z: -112 });
-    await until(() => G.player.pos.z < -108);
-    this.checkpointAt(0, -109);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      // 저승 길·카론의 배·테세우스·하데스와의 약속은 이미 지나간 것으로
+      this.hermes.world.remove(this.hermes);
+      // 하데스와의 약속: 무기 없이 맨손으로
+      G.player.setWeaponMode('fist');
+      G.player.skillsLocked = true;
+      G.ui.hud.updateButtons();
+      await this.resumeHere(0, -109);
+    } else {
+      this.cutscene(true);
+      this.focus(1.5, -1, 0.7);
+      await this.talk([
+        ['hermes', '안녕, 헤라클레스! 저승 가는 길은 내가 안내하지. 날개 신발로 휙휙~ 따라와!'],
+        ['hercules', '마지막 과업이에요. 꼭 해낼 거예요!'],
+      ]);
+      G.fx.starPop(this.hermes.pos, 0.8);
+      this.hermes.world.remove(this.hermes);
+      this.unfocus();
+      this.cutscene(false);
+      this.objective('저승 길을 따라가자', { x: 0, z: -24 });
+      await this.ambush(0, -22, 9, () => [...this.wave(BAT, 3, 0, -26, 4), ...this.wave(SKELETON, 2, 0, -24, 3), this.add(new ShieldEnemy({ ...SKELETON, x: 0, z: -21 }))], { text: '박쥐와 해골 병사들이다!' });
+      this.checkpointAt(0, -30);
+      // 카론의 도움
+      this.objective('스틱스 강의 뱃사공에게', this.charon);
+      await until(() => G.player.pos.z < -40);
+      this.cutscene(true);
+      this.focus(1.5, -45, 0.7);
+      await this.talk([
+        ['charon', '살아 있는 자는… 이 배에 태울 수 없다…'],
+        ['hercules', '카론 할아버지, 부탁드려요. 꼭 해야 하는 일이에요!'],
+        ['narr', '(헤라클레스가 반짝이는 동전 오볼로스를 내밀어요)'],
+        ['charon', '…흠. 그 눈빛… 겁이 없구나. 좋다, 타거라.'],
+      ]);
+      await this.boatRide();
+      this.checkpointAt(0, -86);
+      this.unfocus();
+      this.cutscene(false);
+      await this.rescueTheseus();
+      this.cutscene(true);
+      // 하데스
+      this.focus(0, -92, 0.7);
+      G.player.faceToward(0, -95);
+      await this.talk([
+        ['hades', '살아 있는 자가 여기까지 오다니… 무슨 일이냐.'],
+        ['hercules', '하데스 님, 케르베로스를 잠깐만 데려가게 해 주세요. 마지막 과업이에요!'],
+        ['persephone', '여보, 이 젊은이의 용기를 보세요.'],
+        ['hades', '…좋다. 단, 무기는 하나도 쓰지 말고 맨손으로 이겨라.'],
+        ['hercules', '맨손이라면 자신 있어요!'],
+      ]);
+      G.player.setWeaponMode('fist');
+      G.player.skillsLocked = true;
+      G.ui.hud.updateButtons();
+      this.toast('몽둥이를 내려놓았다! 맨손 대결!', 2.2);
+      this.unfocus();
+      this.cutscene(false);
+      this.objective('케르베로스가 있는 문으로', { x: 0, z: -112 });
+      await until(() => G.player.pos.z < -108);
+      this.checkpointAt(0, -109);
+    }
+    this.saveResume();
     const cer = this.add(new Cerberus({ x: 0, z: -124 }));
     cer.active = false;
     await this.bossIntro(cer, '케르베로스', { roar: 'bark', lines: [

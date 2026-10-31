@@ -261,6 +261,8 @@ export class Game {
     G.debug.god = G.params.has('god');
     G.debug.auto = G.params.has('auto');
     G.debug.report = G.params.has('report');
+    // 과업 중간 이어하기: 이어하기로 들어온 게 아니면 지움 (과업을 끝내거나 마을로 나가도 지워짐)
+    if (!params.resume && G.save.data.resume) G.save.data.resume = null;
 
     const key = `../stages/${id}.js`;
     if (!STAGE_MODULES[key]) {
@@ -334,9 +336,9 @@ export class Game {
     return this.loadStage('hub', params);
   }
 
-  goLabor(n) {
+  goLabor(n, extra = {}) {
     const L = LABORS[n - 1];
-    return this.loadStage(L.stage, { n });
+    return this.loadStage(L.stage, { n, ...extra });
   }
 
   // ───────── 루프 ─────────

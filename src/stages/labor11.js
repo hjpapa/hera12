@@ -167,75 +167,83 @@ export default class Labor11 extends Stage {
 
   async run() {
     await this.intro();
-    this.cutscene(true);
-    this.focus(1.5, 1, 0.7);
-    await this.talk([
-      ['hercules', '세상 끝 정원이 어디 있는지 아는 사람은… 바다 노인 네레우스뿐이래!'],
-      ['nereus', '끄응, 놓아 다오! 알았다, 알려 주마! 먼저 캅카스 산의 프로메테우스를 찾아가거라.'],
-    ]);
-    G.fx.burst(this.nereus.pos, { count: 14, color: 0x9ae0ff, tile: 'drop', size: 0.5, speed: 4, additive: false });
-    this.nereus.world.remove(this.nereus);
-    const pre = this.labor.prelude;
-    if (pre && !(G.save.data.sideSeen || []).includes('p11')) {
-      await G.ui.screens.storybook(pre.pages);
-      G.save.data.sideSeen = [...(G.save.data.sideSeen || []), 'p11'];
-      if (pre.card && G.save.addCard(pre.card)) await G.ui.screens.card(pre.card);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      // 독수리·프로메테우스·아틀라스는 이미 지나간 것으로 (라돈의 정원 앞에서 시작)
+      this.nereus.world.remove(this.nereus);
+      await this.resumeHere(0, -80);
+    } else {
+      this.cutscene(true);
+      this.focus(1.5, 1, 0.7);
+      await this.talk([
+        ['hercules', '세상 끝 정원이 어디 있는지 아는 사람은… 바다 노인 네레우스뿐이래!'],
+        ['nereus', '끄응, 놓아 다오! 알았다, 알려 주마! 먼저 캅카스 산의 프로메테우스를 찾아가거라.'],
+      ]);
+      G.fx.burst(this.nereus.pos, { count: 14, color: 0x9ae0ff, tile: 'drop', size: 0.5, speed: 4, additive: false });
+      this.nereus.world.remove(this.nereus);
+      const pre = this.labor.prelude;
+      if (pre && !(G.save.data.sideSeen || []).includes('p11')) {
+        await G.ui.screens.storybook(pre.pages);
+        G.save.data.sideSeen = [...(G.save.data.sideSeen || []), 'p11'];
+        if (pre.card && G.save.addCard(pre.card)) await G.ui.screens.card(pre.card);
+      }
+      this.unfocus();
+      this.cutscene(false);
+      // ── 프로메테우스 구출 ──
+      this.objective('캅카스 산으로!', { x: 0, z: -26 });
+      await until(() => G.player.pos.z < -20);
+      this.checkpointAt(0, -20);
+      this.cutscene(true);
+      this.focus(-3, -32, 0.85);
+      await this.say('prometheus', '으으… 사람들에게 불을 준 벌로, 나는 이 바위에 묶여 있다네…');
+      const eagle = this.add(new FlyBoss({ sprite: 'eagle', x: 6, z: -34, hp: 460, exp: 70, coins: 20, title: '거대 독수리', flyHeight: 4.5 }));
+      eagle.active = false;
+      G.audio.play('bird');
+      await this.say('hercules', '저 독수리가 할아버지를 괴롭히는구나! 내가 구해 줄게요!');
+      this.unfocus();
+      this.cutscene(false);
+      await this.bossIntro(eagle, '거대 독수리', { roar: 'bird', lines: [['glau', '독화살로 맞혀! 땅으로 내려올 때는 몽둥이로 쾅!']] });
+      eagle.active = true;
+      this.objective('독수리를 물리치자!');
+      await until(() => !eagle.alive);
+      await this.bossDown(eagle, { text: '' });
+      G.audio.music('field');
+      this.chains.forEach((c) => (c.hittable = true));
+      for (const c of this.chains) {
+        if (!c.alive) continue;
+        this.objective('쇠사슬을 끊자!', c);
+        await until(() => !c.alive);
+      }
+      this.prom.visual.setSprite('prometheus_free');
+      G.fx.starPop(this.prom.pos, 1.3);
+      G.audio.jingle('reward');
+      this.cutscene(true);
+      this.focus(-4, -33, 0.75);
+      await this.talk([
+        ['prometheus_free', '고맙네, 헤라클레스! 드디어 자유야!'],
+        ['prometheus_free', '황금사과는 아틀라스에게 부탁하게. 정원의 요정들이 그의 딸들이거든.'],
+      ]);
+      this.unfocus();
+      this.cutscene(false);
+      // ── 하늘 들기 ──
+      this.checkpointAt(0, -50);
+      this.objective('하늘을 떠받치는 거인 아틀라스에게!', { x: 0, z: -60 });
+      await until(() => G.player.pos.z < -56);
+      this.cutscene(true);
+      this.focus(0, -64, 1.1);
+      await this.talk([
+        ['atlas', '하늘이 너무 무겁구나… 젊은이, 네가 잠깐만 하늘을 들어 준다면, 내가 사과를 따다 주마.'],
+        ['hercules', '좋아요! 하늘쯤이야… 으라차!'],
+      ]);
+      await this.holdSky();
+      // ── 아틀라스 속이기 ──
+      await this.trickAtlas();
+      this.unfocus();
+      this.cutscene(false);
+      // ── 라돈 ──
+      this.checkpointAt(0, -80);
     }
-    this.unfocus();
-    this.cutscene(false);
-    // ── 프로메테우스 구출 ──
-    this.objective('캅카스 산으로!', { x: 0, z: -26 });
-    await until(() => G.player.pos.z < -20);
-    this.checkpointAt(0, -20);
-    this.cutscene(true);
-    this.focus(-3, -32, 0.85);
-    await this.say('prometheus', '으으… 사람들에게 불을 준 벌로, 나는 이 바위에 묶여 있다네…');
-    const eagle = this.add(new FlyBoss({ sprite: 'eagle', x: 6, z: -34, hp: 460, exp: 70, coins: 20, title: '거대 독수리', flyHeight: 4.5 }));
-    eagle.active = false;
-    G.audio.play('bird');
-    await this.say('hercules', '저 독수리가 할아버지를 괴롭히는구나! 내가 구해 줄게요!');
-    this.unfocus();
-    this.cutscene(false);
-    await this.bossIntro(eagle, '거대 독수리', { roar: 'bird', lines: [['glau', '독화살로 맞혀! 땅으로 내려올 때는 몽둥이로 쾅!']] });
-    eagle.active = true;
-    this.objective('독수리를 물리치자!');
-    await until(() => !eagle.alive);
-    await this.bossDown(eagle, { text: '' });
-    G.audio.music('field');
-    this.chains.forEach((c) => (c.hittable = true));
-    for (const c of this.chains) {
-      if (!c.alive) continue;
-      this.objective('쇠사슬을 끊자!', c);
-      await until(() => !c.alive);
-    }
-    this.prom.visual.setSprite('prometheus_free');
-    G.fx.starPop(this.prom.pos, 1.3);
-    G.audio.jingle('reward');
-    this.cutscene(true);
-    this.focus(-4, -33, 0.75);
-    await this.talk([
-      ['prometheus_free', '고맙네, 헤라클레스! 드디어 자유야!'],
-      ['prometheus_free', '황금사과는 아틀라스에게 부탁하게. 정원의 요정들이 그의 딸들이거든.'],
-    ]);
-    this.unfocus();
-    this.cutscene(false);
-    // ── 하늘 들기 ──
-    this.checkpointAt(0, -50);
-    this.objective('하늘을 떠받치는 거인 아틀라스에게!', { x: 0, z: -60 });
-    await until(() => G.player.pos.z < -56);
-    this.cutscene(true);
-    this.focus(0, -64, 1.1);
-    await this.talk([
-      ['atlas', '하늘이 너무 무겁구나… 젊은이, 네가 잠깐만 하늘을 들어 준다면, 내가 사과를 따다 주마.'],
-      ['hercules', '좋아요! 하늘쯤이야… 으라차!'],
-    ]);
-    await this.holdSky();
-    // ── 아틀라스 속이기 ──
-    await this.trickAtlas();
-    this.unfocus();
-    this.cutscene(false);
-    // ── 라돈 ──
-    this.checkpointAt(0, -80);
+    this.saveResume();
     this.objective('세 번째 황금사과가 있는 정원으로!', { x: 0, z: -90 });
     await until(() => G.player.pos.z < -84);
     await this.ladonFight();
