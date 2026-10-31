@@ -72,7 +72,7 @@ export class Dialog {
       this.text.textContent = '';
       this.next.classList.remove('show');
       this.choices.innerHTML = '';
-      const cur = (this.cur = { full: text, shown: 0, t: 0, res, keepOpen, info, done: false });
+      const cur = (this.cur = { full: text, shown: 0, t: 0, res, keepOpen, info, done: false, startAt: performance.now(), doneAt: 0 });
       if (G.debug.auto) {
         // 테스트용 자동 진행 (?auto)
         setTimeout(() => {
@@ -129,6 +129,11 @@ export class Dialog {
   advance() {
     const c = this.cur;
     if (!c) return;
+    // 연타 보호: 공격 버튼을 톡톡 누르던 손가락에 대사가 읽기도 전에 넘어가지 않게
+    // (새 줄이 뜬 뒤 0.3초, 글자가 다 나온 뒤 0.35초는 넘기지 않음)
+    const now = performance.now();
+    if (now - c.startAt < 300) return;
+    if (c.done && now - c.doneAt < 350) return;
     if (c.shown < c.full.length) {
       c.shown = c.full.length;
       this.text.textContent = c.full;
@@ -145,6 +150,7 @@ export class Dialog {
     const c = this.cur;
     if (!c || c.done) return;
     c.done = true;
+    c.doneAt = performance.now();
     if (c.choice) c.onFull?.();
     else this.next.classList.add('show');
   }
