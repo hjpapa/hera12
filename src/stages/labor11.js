@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
-import { Enemy } from '../game/enemy.js';
+import { Enemy, BOSS_HP_SCALE } from '../game/enemy.js';
 import { Entity } from '../game/entity.js';
 import { NPC } from '../game/npc.js';
 import { Breakable, Shot } from '../game/items.js';
@@ -19,7 +19,7 @@ import { rand, clamp, TAU } from '../core/util.js';
 // 라돈의 머리 (사과나무를 둘러싼 용)
 class LadonHead extends Enemy {
   constructor(o) {
-    super({ sprite: 'ladon_head', hp: 120, radius: 0.9, ai: 'none', exp: 15, coins: [2, 3], superArmor: true, knockResist: 1, anchored: true, mass: 20, heartChance: 0.3, stunImmune: true, ...o });
+    super({ sprite: 'ladon_head', hp: 120 * BOSS_HP_SCALE, radius: 0.9, ai: 'none', exp: 15, coins: [2, 3], superArmor: true, knockResist: 1, anchored: true, mass: 20, heartChance: 0.3, stunImmune: true, ...o });
     this.base = { x: o.x, z: o.z };
     this.body = o.body;
     this.cool = rand(1.5, 3);
@@ -365,7 +365,7 @@ export default class Labor11 extends Stage {
     const b = { x: this.ladonBody.pos.x, z: this.ladonBody.pos.z };
     const heads = [[-5, -97], [-2.6, -95], [0, -94.5], [2.6, -95], [5, -97]].map(([x, z]) => this.add(new LadonHead({ x, z, body: b })));
     heads.forEach((h) => (h.active = false));
-    const proxy = { hp: 1, maxHp: 1, alive: true, title: '용 라돈', bossFrac: () => heads.reduce((s, h) => s + Math.max(0, h.alive ? h.hp : 0), 0) / (heads.length * 120) };
+    const proxy = { hp: 1, maxHp: 1, alive: true, title: '용 라돈', bossFrac: () => heads.reduce((s, h) => s + Math.max(0, h.alive ? h.hp : 0), 0) / heads.reduce((s, h) => s + h.maxHp, 0) };
     this.cutscene(true);
     this.focus(0, -96, 0.95);
     G.audio.play('roar');

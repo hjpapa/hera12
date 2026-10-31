@@ -8,6 +8,10 @@ import { Shot, dropLoot } from './items.js';
 import { wait, until } from '../core/script.js';
 import { rand, randInt, clamp, damp, dampAngle, TAU, pick } from '../core/util.js';
 
+// 보스 체력 배율. 아이와 플레이해 보고 이 숫자 하나로 조정한다 (?report 로 보스전 시간을 볼 수 있음).
+// Boss 를 상속한 보스 전부 + 체력 대신 다른 것으로 싸우는 보스(사자 어질어질 게이지, 히드라·라돈 머리)에 적용
+export const BOSS_HP_SCALE = 2;
+
 // ───────── 공격 차례 ─────────
 // 여러 마리가 한꺼번에 덤비면 빨간 예고가 겹쳐서 아이가 보고 피하기 어렵다.
 // 동시에 공격하는 일반 적은 최대 2마리(보스전·도움 모드에서는 1마리), 공격을 시작하는 사이에는 조금씩 간격을 둔다.
@@ -606,6 +610,8 @@ export class Boss extends Enemy {
   constructor(o) {
     super({ superArmor: true, knockResist: 0.85, mass: 8, heartChance: 0, ...o, boss: true });
     this.boss = true;
+    this.maxHp = Math.round(this.maxHp * BOSS_HP_SCALE);
+    this.hp = this.maxHp;
     this.title = o.title || '';
     this.mode = 'idle'; // 'follow' | 'idle' | 'custom'
     this.followSpeed = o.speed ?? 3;

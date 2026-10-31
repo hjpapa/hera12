@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
-import { Enemy, Boss } from '../game/enemy.js';
+import { Enemy, Boss, BOSS_HP_SCALE } from '../game/enemy.js';
 import { Entity } from '../game/entity.js';
 import { Combat } from '../game/combat.js';
 import { Hazard, Shot, Breakable } from '../game/items.js';
@@ -33,7 +33,7 @@ class Crab extends Boss {
 // 히드라 머리 하나 (몸통 옆 기준점에서 목을 빼서 공격)
 class Head extends Enemy {
   constructor(o) {
-    super({ sprite: o.gold ? 'hydra_head_gold' : 'hydra_head', hp: o.gold ? 220 : 60, radius: 0.9, ai: 'none', exp: o.gold ? 0 : 8, coins: [1, 2], heartChance: 0.25, superArmor: true, knockResist: 1, anchored: true, mass: 20, ...o });
+    super({ sprite: o.gold ? 'hydra_head_gold' : 'hydra_head', hp: (o.gold ? 220 : 60) * BOSS_HP_SCALE, radius: 0.9, ai: 'none', exp: o.gold ? 0 : 8, coins: [1, 2], heartChance: 0.25, superArmor: true, knockResist: 1, anchored: true, mass: 20, ...o });
     this.hydra = o.hydra;
     this.gold = !!o.gold;
     this.base = { x: o.x, z: o.z };

@@ -23,7 +23,7 @@
 
 다음에 할 만한 것
 - Codex: docs/CODEX_PROMPT_2.md(보스) → docs/CODEX_PROMPT_3.md(헤라클레스 뒷모습·옆모습 + 이야기 인물) → 그림책 컷신 28장 (게임 코드는 수정 불필요)
-- 실제 아이와 플레이해 보고 난이도(보스 체력, 적 수) 조정 — 각 laborNN.js 위쪽 상수와 보스 클래스 `hp`
+- 실제 아이와 플레이해 보고 난이도(보스 체력, 적 수) 조정 — 보스 체력은 전체 배율 `BOSS_HP_SCALE`(src/game/enemy.js, 지금 2배)로 먼저, 과업별로는 각 laborNN.js 위쪽 상수와 보스 클래스 `hp`
 - GLB 3D 모델 교체 연결 (manifest.models 는 아직 미사용)
 
 테스트: `?stage=labor05&auto&god&bot&sim` (봇이 끝까지 플레이), `?gallery` (그림 확인)

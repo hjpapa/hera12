@@ -3,7 +3,7 @@
 // 무기가 안 통하는 사자 → 몽둥이로 어질어질 → 꽉 잡기(연타) → 동굴 입구 막기 → 2라운드 → 몸으로 졸라 물리치기
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
-import { Boss } from '../game/enemy.js';
+import { Boss, BOSS_HP_SCALE } from '../game/enemy.js';
 import { Combat } from '../game/combat.js';
 import { Arrow, Breakable } from '../game/items.js';
 import { rand } from '../core/util.js';
@@ -26,7 +26,7 @@ class LionBoss extends Boss {
   damageFilter(info) {
     if (this.grabbable || this.fleeing) return { blocked: true, text: '쿵!', sound: 'thud' };
     if (info.type === 'arrow' || info.type === 'poison') return { blocked: true, text: '팅!', sound: 'ting', color: '#ffffff' };
-    const add = info.type === 'special' ? 50 : info.big ? 22 : 9;
+    const add = (info.type === 'special' ? 50 : info.big ? 22 : 9) / BOSS_HP_SCALE;
     this.daze = Math.min(100, this.daze + add);
     this.flash(0.1);
     this.squash(0.18, 0.18);
