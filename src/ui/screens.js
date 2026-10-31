@@ -2,7 +2,7 @@
 import { G, pause, resume } from '../core/context.js';
 import { el, onTap, esc } from './dom.js';
 import { Save } from '../core/save.js';
-import { LABORS } from '../data/labors.js';
+import { LABORS, missingStars } from '../data/labors.js';
 import { CARDS } from '../data/cards.js';
 import { PICKS } from '../game/stats.js';
 import { storyCanvas, CONSTELLATION, CONST_LINES } from './storyart.js';
@@ -33,6 +33,7 @@ export async function goFullscreen() {
 
 export class Screens {
   constructor(root) {
+    this.uiRoot = root;
     this.root = el('div', 'screens', root);
     this.fadeEl = el('div', 'fade', root);
     this.stack = [];
@@ -60,6 +61,24 @@ export class Screens {
       resume('screen');
       if (!G.ui.cutscene && !G.ui.dialog.open) G.input.setVisible(true);
     }
+  }
+
+  // 첫 실행: 이 장면에 필요한 그림을 아직 받는 중이면 진행 막대를 보여 주며 기다림
+  // (나머지 그림은 뒤에서 계속 받고, 받는 대로 임시 그림이 진짜 그림으로 바뀜)
+  async waitAssets(ids) {
+    const S = G.sprites;
+    const total = S.missing(ids);
+    if (!total) return;
+    const wait = S.want(ids);
+    const box = el('div', 'assetload', this.uiRoot);
+    el('div', 'altitle', box, '그림을 불러오는 중…');
+    const fill = el('div', 'alfill', el('div', 'albar', box));
+    const show = () => (fill.style.width = Math.round(((total - S.missing(ids)) / total) * 100) + '%');
+    show();
+    S.onProgress = show;
+    await wait;
+    S.onProgress = null;
+    box.remove();
   }
 
   async fade(on, dur = 0.35) {
@@ -210,6 +229,18 @@ export class Screens {
         G.game.applyQuality();
       });
     });
+    const trow = el('div', 'srow', grid, '<span>⏰ 놀이 시간 알림</span>');
+    const ts = el('div', 'seg', trow);
+    [[0, '끄기'], [20, '20분'], [30, '30분'], [45, '45분']].forEach(([k, t]) => {
+      const b = el('button', 'segb' + ((s.playTime || 0) === k ? ' on' : ''), ts, t);
+      onTap(b, () => {
+        s.playTime = k;
+        ts.querySelectorAll('.segb').forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        G.save.write();
+        G.audio.play('select');
+      });
+    });
     const nrow = el('div', 'srow', grid, '<span>✏️ 원작자 이름</span>');
     const ni = el('input', 'name-in', nrow);
     ni.value = s.childName;
@@ -234,6 +265,39 @@ export class Screens {
       }
     });
     this.button(box, '닫기', 'gold', () => this.close(o));
+  }
+
+  // ───────── 진행이 멈췄을 때 (과업 진행 코드 오류) ─────────
+  stageError() {
+    return new Promise((res) => {
+      const o = this.overlay('menu confirm');
+      const box = el('div', 'panel', o);
+      el('div', 'ptitle', box, '앗, 길을 잃었어!');
+      el('div', 'cmsg', box, '다시 해 볼까?<br><small>보스 앞까지 왔으면 거기서부터 다시 해요.</small>');
+      G.audio.speak('앗, 길을 잃었어! 다시 해 볼까?', { pitch: 1.2 });
+      const row = el('div', 'crow', box);
+      this.button(row, '다시 하기', 'gold', () => { this.close(o); res(true); });
+      this.button(row, '마을로', '', () => { this.close(o); res(false); });
+    });
+  }
+
+  // ───────── 놀이 시간 알림 ─────────
+  // true: 조금 더 하기, false: 오늘은 그만 (쉬는 화면)
+  async playTimeUp(min) {
+    const i = await G.ui.dialog.choose('glau', `부엉! 벌써 ${min}분이나 모험했어. 오늘은 여기까지 할까? 지금까지 한 건 다 저장돼 있어!`, ['그만할래', '조금만 더 할래']);
+    G.ui.dialog.hide();
+    if (i === 1) return true;
+    G.save.write();
+    G.audio.music(null);
+    G.audio.jingle('star');
+    const o = this.overlay('rest');
+    el('div', 'rest-moon', o, '🌙');
+    el('div', 'rest-title', o, '오늘 모험 끝!');
+    el('div', 'rest-sub', o, `영웅의 별 ★ ${G.save.starCount()} / 36 · 과업 ${G.save.clearedCount()} / 12`);
+    el('div', 'rest-sub', o, '푹 쉬고, 내일 또 만나요!');
+    G.audio.speak('오늘 모험 끝! 푹 쉬고, 내일 또 만나요!', { pitch: 1.2 });
+    this.button(o, '처음 화면으로', 'small', () => location.reload());
+    return new Promise(() => {}); // 처음 화면으로 갈 때까지 그대로
   }
 
   // ───────── 플레이 기록 (부모님용: 아이와 해 본 뒤 난이도 조정) ─────────
@@ -347,6 +411,7 @@ export class Screens {
         im.src = G.sprites.portraitURL(L.sprite);
         el('div', 'lname', card, L.title);
         el('div', 'lstars', card, (st.stars || [false, false, false]).map((s) => (s ? '★' : '☆')).join(''));
+        if (st.cleared) el('div', 'lmiss', card, missingStars(L, st).map((m) => m.icon).join(' ') || '✨');
         if (!open) el('div', 'llock', card, '🔒');
         if (open && travel) {
           onTap(card, () => {
@@ -356,6 +421,7 @@ export class Screens {
           });
         }
       }
+      el('div', 'mhelp', box, '남은 별: 🏺 숨은 황금 항아리 · 🎯 도전 · ✨ 다 모았어요');
       el('div', 'mhelp', box, G.save.data.settings.unlockAll ? '모든 과업이 열려 있어요 (부모님 메뉴)' : '왕에게 말을 걸면 다음 과업이 열려요');
       this.button(box, '닫기', '', () => { this.close(o); res(null); });
     });
@@ -448,7 +514,11 @@ export class Screens {
       const hint = el('div', 'shint', o, '화면을 톡! 눌러 넘겨요');
       const skip = el('button', 'sskip', o, '건너뛰기 ▶▶');
       let i = -1;
-      const next = () => {
+      let busy = false;
+      // 그림책 그림은 펼칠 때 받는다: 모든 장을 미리 받기 시작하고, 넘길 때 그 장의 그림을 기다림 (최대 8초, 못 받으면 임시 그림)
+      pages.forEach((pg) => G.sprites.loadStory(pg.art));
+      const next = async () => {
+        if (busy) return;
         i++;
         if (i >= pages.length) {
           G.audio.stopSpeak();
@@ -457,6 +527,13 @@ export class Screens {
           return;
         }
         const p = pages[i];
+        if (!G.sprites.storyImage(p.art)) {
+          busy = true;
+          txt.textContent = '그림책을 펼치는 중…';
+          await Promise.race([G.sprites.loadStory(p.art), waitReal(8)]);
+          busy = false;
+          if (i >= pages.length) return; // 기다리는 동안 건너뛰기
+        }
         cv.innerHTML = '';
         const c = storyCanvas(p.art);
         c.classList?.add('scanvas');
@@ -474,6 +551,7 @@ export class Screens {
       onTap(o, () => next());
       onTap(skip, () => {
         i = pages.length;
+        busy = false;
         next();
       });
       next();

@@ -3,14 +3,86 @@ import * as THREE from 'three';
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
 import { Enemy } from '../game/enemy.js';
+import { Entity } from '../game/entity.js';
+import { Combat } from '../game/combat.js';
 import { NPC } from '../game/npc.js';
-import { LABORS } from '../data/labors.js';
+import { LABORS, missingStars } from '../data/labors.js';
 import { CONSTELLATION } from '../ui/storyart.js';
 import { TAU, rand } from '../core/util.js';
 
 const R_GATE = 27;
 const gateAngle = (n) => ((120 + (n - 1) * (300 / 11)) * Math.PI) / 180;
 const gatePos = (n, r = R_GATE) => ({ x: Math.cos(gateAngle(n)) * r, z: Math.sin(gateAngle(n)) * r });
+
+// ───────── 구르기 연습장 ─────────
+// 가까이 가면 바닥에 빨간 원을 그리고, 원이 다 차면 쿵! 그 순간 구르고 있으면 "완벽한 회피!"
+// 연습이라 맞아도 하트는 그대로(살짝 밀려나기만), 필살기 게이지도 차지 않는다.
+const PRACTICE_R = 2.2;
+
+class DodgeDummy extends Entity {
+  constructor(o) {
+    super({ sprite: 'dummy', radius: 0.55, team: 'neutral', hittable: false, anchored: true, mass: 50, ...o });
+    this.cool = 1.2;
+    this.busy = false;
+    this.tele = null;
+    this.hinted = false;
+    this.success = 0;
+  }
+
+  update(dt) {
+    super.update(dt);
+    const p = G.player;
+    if (!p || !G.save.data.tutorialDone || this.busy || G.ui.cutscene) return;
+    if (Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) > 5) {
+      this.cool = Math.max(this.cool, 0.8);
+      return;
+    }
+    if (!this.hinted) {
+      this.hinted = true;
+      G.ui.hud.toast('구르기 연습장! 빨간 원이 다 차는 순간 구르면 완벽한 회피!', 3.5);
+      G.audio.speak('구르기 연습장! 빨간 원이 다 차는 순간 굴러 봐!', { pitch: 1.3 });
+    }
+    this.cool -= dt;
+    if (this.cool > 0) return;
+    this.cool = 2.6;
+    this.busy = true;
+    const wu = Combat.windup(1.1);
+    this.tele = G.fx.telegraphCircle(this.pos, PRACTICE_R, wu);
+    this.squash(0.3, -0.15);
+    G.audio.play('warn');
+    wait(wu).then(() => this.slam());
+  }
+
+  slam() {
+    this.busy = false;
+    this.tele?.remove();
+    this.tele = null;
+    if (this.removed) return;
+    this.squash(0.25, 0.3);
+    G.audio.play('stomp');
+    G.rig.shake(0.2);
+    G.fx.ring(this.pos, { r0: 0.4, r1: PRACTICE_R * 1.1, life: 0.35, color: 0xffe0b0 });
+    const p = G.player;
+    if (!p || Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) > PRACTICE_R + p.radius * 0.6) return;
+    if (p.state === 'dash') {
+      if (p.perfectDodge({ practice: true })) {
+        this.success++;
+        G.ui.hud.toast(`연습 성공 ${this.success}번! ${this.success >= 3 ? '이제 진짜 영웅이야!' : ''}`, 2);
+      }
+    } else {
+      // 연습이라 아프지 않게: 살짝 밀려나기만
+      const dx = p.pos.x - this.pos.x, dz = p.pos.z - this.pos.z, l = Math.hypot(dx, dz) || 1;
+      p.push(dx / l, dz / l, 6);
+      p.squash(0.15, 0.2);
+      G.fx.text({ x: p.pos.x, y: 1.6, z: p.pos.z }, '원이 다 찰 때 굴러 봐!', { color: '#ffe86a', size: 0.9, cls: 'word' });
+    }
+  }
+
+  dispose() {
+    this.tele?.remove();
+    super.dispose();
+  }
+}
 
 function textSprite(lines, { w = 512, h = 192, bg = 'rgba(255,248,232,0.95)', color = '#3a2618' } = {}) {
   const c = document.createElement('canvas');
@@ -110,6 +182,14 @@ export default class Hub extends Stage {
       const c = this.add(new NPC({ sprite: 'cerberus_happy', x: 4.5, z: 9.5, scale: 0.4, talk: () => this.say('cerberus_happy', '멍! 멍멍! (케르베로스 인형이 꼬리를 흔들어요)') }));
       c.radius = 0.8;
     }
+    // 구르기 연습장 (마을 왼쪽 아래, 집 옆)
+    this.add(new DodgeDummy({ x: -6, z: 12.5 }));
+    const pring = new THREE.Mesh(new THREE.RingGeometry(PRACTICE_R - 0.12, PRACTICE_R + 0.12, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xf5c542, transparent: true, opacity: 0.55, depthWrite: false }));
+    pring.position.set(-6, 0.05, 12.5);
+    this.world.root.add(pring);
+    const psign = textSprite([{ text: '구르기 연습', size: 60 }], { w: 420, h: 120 });
+    psign.position.set(-6, 3.4, 12.5);
+    this.world.root.add(psign);
     // 항아리 (언제나 깨는 재미)
     this.pots([[-4, 16], [4, 16.5], [-17, -8], [17, -8], [-6, -12], [6, -12], [-18, 14], [18, 14]]);
     this.updateMarks();
@@ -331,7 +411,10 @@ export default class Hub extends Stage {
   async enterGate(n) {
     const L = LABORS[n - 1];
     const st = G.save.laborState(n);
-    const go = await this.choose('glau', st.cleared ? `${L.title}에 다시 가 볼까? (별 ${st.stars.filter(Boolean).length}/3)` : `과업 ${n}, ${L.title}(으)로 출발할까?`, ['출발!', '아직이요']);
+    // 다시 하는 과업이면 어떤 별이 남았는지 알려 줌
+    const miss = missingStars(L, st).map((m) => m.icon + ' ' + m.text);
+    const ask = !st.cleared ? `과업 ${n}, ${L.title}(으)로 출발할까?` : miss.length ? `${L.title}에 다시 가 볼까? 남은 별은 ${miss.join(', ')}!` : `${L.title}에 다시 가 볼까? 여기 별은 다 모았어!`;
+    const go = await this.choose('glau', ask, ['출발!', '아직이요']);
     if (go === 0) G.game.goLabor(n);
   }
 

@@ -21,6 +21,43 @@ export class SpriteBank {
     this.canvases = {};
     this.textures = {};
     this.urls = {};
+    this.storyLoading = {};
+    // 뒤에서 받는 캐릭터 그림 (첫 실행): 줄을 세워 4장씩 받고, 지금 필요한 그림은 줄 앞으로
+    this.queue = [];
+    this.waiting = {}; // id → { promise, resolve } (아직 못 받은 그림)
+    this.progress = { done: 0, total: 0 };
+    this.allLoaded = false;
+    this.ready = Promise.resolve();
+    this.onProgress = null;
+  }
+
+  loadOne(id, url) {
+    return loadImage('assets/' + url)
+      .then((img) => {
+        this.images[id] = img;
+        // 받기 전에 임시 그림으로 먼저 보였으면 진짜 그림으로 바꿔 끼움 (그림 비율은 sprites.js 기준으로 같음)
+        const t = this.textures[id];
+        if (t) {
+          t.image = img;
+          t.needsUpdate = true;
+        }
+        delete this.canvases[id];
+        delete this.urls['portrait_' + id];
+      })
+      .catch(() => console.warn('[assets] 불러오기 실패:', id, url));
+  }
+
+  // 이 그림들을 먼저 받는다 (스테이지에 들어갈 때). 다 받으면(또는 실패하면) 끝나는 Promise
+  want(ids) {
+    const set = new Set(ids.filter((id) => this.waiting[id]));
+    if (!set.size) return Promise.resolve();
+    this.queue = [...this.queue.filter((q) => set.has(q.id)), ...this.queue.filter((q) => !set.has(q.id))];
+    return Promise.all([...set].map((id) => this.waiting[id].promise));
+  }
+
+  // 아직 못 받은 그림 수 (ids 중에서)
+  missing(ids) {
+    return ids.filter((id) => this.waiting[id]).length;
   }
 
   async init() {
@@ -30,14 +67,39 @@ export class SpriteBank {
     } catch (e) {
       /* manifest 없음 → 전부 임시 그림 */
     }
-    const all = { ...(this.manifest.sprites || {}), ...(this.manifest.story || {}) };
-    await Promise.all(
-      Object.entries(all).map(([id, url]) =>
-        loadImage('assets/' + url)
-          .then((img) => (this.images[id] = img))
-          .catch(() => console.warn('[assets] 불러오기 실패:', id, url)),
-      ),
-    );
+    // 그림을 다 받은 뒤에야 타이틀이 뜨면 휴대폰 데이터에서 한참 빈 화면이라 (약 18MB, LTE 15초)
+    // 타이틀에 쓰는 그림만 먼저 받고, 나머지 캐릭터 그림은 타이틀을 띄운 뒤 뒤에서 받는다.
+    // 스테이지를 열기 전에는 ready 를 기다린다 (임시 그림이 캐시에 남지 않게). 그림책 그림은 펼칠 때 받는다.
+    const entries = Object.entries(this.manifest.sprites || {});
+    const boot = (id) => id === 'hercules_lion' || id.startsWith('icon_');
+    await Promise.all(entries.filter(([id]) => boot(id)).map(([id, url]) => this.loadOne(id, url)));
+    const rest = entries.filter(([id]) => !boot(id));
+    this.progress = { done: 0, total: rest.length };
+    for (const [id] of rest) {
+      let resolve;
+      const promise = new Promise((r) => (resolve = r));
+      this.waiting[id] = { promise, resolve };
+    }
+    this.queue = rest.map(([id, url]) => ({ id, url }));
+    const worker = async () => {
+      while (this.queue.length) {
+        const { id, url } = this.queue.shift();
+        await this.loadOne(id, url);
+        this.waiting[id].resolve();
+        delete this.waiting[id];
+        this.progress.done++;
+        this.onProgress?.(this.progress);
+      }
+    };
+    this.ready = Promise.all([worker(), worker(), worker(), worker()]).then(() => (this.allLoaded = true));
+  }
+
+  // 그림책 그림 (펼칠 때 받음, 없으면 null)
+  loadStory(id) {
+    if (this.images[id]) return Promise.resolve(this.images[id]);
+    const url = this.manifest.story?.[id];
+    if (!url) return Promise.resolve(null);
+    return (this.storyLoading[id] ||= this.loadOne(id, url).then(() => this.images[id] || null));
   }
 
   def(id) {

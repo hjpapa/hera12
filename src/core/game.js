@@ -274,6 +274,9 @@ export class Game {
     const mod = await STAGE_MODULES[key]();
     const StageClass = mod.default;
     const stage = new StageClass(params);
+    // 첫 실행에서 그림을 아직 받는 중이면: 헤라클레스·무기·항아리·부엉이 + 이 스테이지의 미리 받기 목록만 기다림
+    const always = Object.keys(G.sprites.manifest.sprites || {}).filter((id) => /^(hercules|w_|amphora|glau$)/.test(id));
+    await G.ui.screens.waitAssets([...always, ...(stage.preload || [])]);
     stage.id = id;
     const world = new World();
     world.stage = stage;
@@ -303,7 +306,7 @@ export class Game {
     G.save.write();
     await G.ui.screens.fade(false, 0.4);
     stage.startTime = G.time;
-    stage.run().catch((e) => console.error('[stage]', e));
+    stage.run().catch((e) => this.stageError(stage, e));
   }
 
   // 처음 보이는 순간 버벅이지 않도록 그림을 GPU에 올리고 셰이더를 미리 만든다
@@ -330,6 +333,21 @@ export class Game {
       try { r.compile(G.scene, G.camera); } catch (e) { /* 무시 */ }
     }
     this.perf.settle = 2.5;
+  }
+
+  // 과업 진행 코드에 문제가 생기면 화면이 그대로 멈추지 않게 "다시 하기 / 마을로"를 고르게 한다
+  async stageError(stage, e) {
+    console.error('[stage]', e);
+    if (G.stage !== stage || this.loading) return; // 이미 다른 곳으로 감
+    G.ui.dialog.hide();
+    G.ui.setCutscene(false);
+    const again = await G.ui.screens.stageError();
+    if (G.stage !== stage || this.loading) return;
+    if (!again) return this.goHub();
+    // 보스 앞까지 왔던 과업이면 보스 앞에서부터
+    const n = stage.n;
+    if (n && LABORS[n - 1]) return this.goLabor(n, G.save.data.resume?.n === n ? { resume: true } : {});
+    return this.loadStage(stage.id, stage.params);
   }
 
   goHub(params = {}) {
@@ -407,6 +425,7 @@ export class Game {
     G.guide.update(G.realTime);
     G.ui.update(dt, rawDt);
     this.checkLevelUp();
+    this.checkPlayTime();
 
     const p = G.player;
     if (p) {
@@ -425,6 +444,28 @@ export class Game {
         this.fpsN = 0;
       }
     }
+  }
+
+  // 놀이 시간 알림 (부모님 메뉴): 화면이 켜져 있던 시간이 정해 둔 분을 넘으면,
+  // 과업 중에는 한 번만 살짝 알려 주고, 마을에 돌아와 한숨 돌렸을 때 부엉이가 물어본다
+  checkPlayTime() {
+    const min = G.save.data.settings.playTime;
+    if (!min || this.playTimeBusy || !G.stage || this.loading) return;
+    if (G.realTime < (this.playTimeDue ?? min * 60)) return;
+    if (G.stage.id !== 'hub') {
+      if (!this.playTimeHinted && !G.paused && !G.ui.cutscene) {
+        this.playTimeHinted = true;
+        G.ui.hud.toast('⏰ 이 과업을 마치면 잠깐 쉬어 볼까?', 3.2);
+      }
+      return;
+    }
+    if (G.paused || G.ui.cutscene || G.ui.dialog.open || G.ui.screens.open) return;
+    this.playTimeBusy = true;
+    G.ui.screens.playTimeUp(min).then((more) => {
+      this.playTimeBusy = false;
+      this.playTimeHinted = false;
+      if (more) this.playTimeDue = G.realTime + 10 * 60;
+    });
   }
 
   async checkLevelUp() {

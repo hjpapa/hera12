@@ -561,8 +561,9 @@ export class Player extends Entity {
   }
 
   // 구르는 순간 공격을 피하면: 슬로모션 + 칭찬 + 필살기 게이지
-  perfectDodge() {
-    if (G.time - this.lastPerfect < 0.9) return;
+  // practice: 마을 구르기 연습장 (필살기 게이지는 안 참 — 보스 전에 미리 채워 가지 않게)
+  perfectDodge({ practice = false } = {}) {
+    if (G.time - this.lastPerfect < 0.9) return false;
     this.lastPerfect = G.time;
     if (G.stage?.stats) G.stage.stats.perfects++;
     G.stage?.checkChallenge?.();
@@ -572,7 +573,8 @@ export class Player extends Entity {
     G.fx.burst(this.pos, { count: 12, color: [0x8fe0ff, 0xffffff], tile: 'star', size: 0.45, speed: 5, gravity: 0 });
     G.fx.ring(this.pos, { r0: 0.4, r1: 2.6, life: 0.35, color: 0x8fe0ff });
     this.dashCd = 0;
-    this.addHero(20);
+    if (!practice) this.addHero(20);
+    return true;
   }
 
   // 필살기 "헤라클레스 강타": 하늘로 뛰어올라 땅을 쾅! 주변 적을 모두 날려 버린다
