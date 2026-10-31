@@ -122,8 +122,10 @@ export class Input {
   }
 
   bindKeys() {
+    // 이름 입력칸 등에 글을 쓰는 중이면 게임 키로 쓰지 않음 (J·K·스페이스… 가 안 써지던 문제)
+    const typing = (e) => !!e.target?.closest?.('input, textarea, select, [contenteditable]');
     addEventListener('keydown', (e) => {
-      if (e.repeat) return;
+      if (e.repeat || typing(e)) return;
       G.audio?.unlock();
       this.keys.add(e.code);
       const b = KEYMAP[e.code];

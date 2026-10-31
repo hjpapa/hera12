@@ -1,7 +1,7 @@
 // 대화창: 얼굴 · 이름 · 타자기 글자 · 읽어주기 · 선택지. 대화 중에는 게임이 멈춘다.
 import { G, pause, resume } from '../core/context.js';
 import { CHARS } from '../data/characters.js';
-import { el } from './dom.js';
+import { el, onTap } from './dom.js';
 
 export class Dialog {
   constructor(root) {
@@ -112,9 +112,8 @@ export class Dialog {
         this.choices.innerHTML = '';
         options.forEach((o, i) => {
           const b = el('button', 'dlg-choice', this.choices, o);
-          b.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onTap(b, () => {
+            G.audio.unlock();
             G.audio.play('confirm');
             G.audio.stopSpeak();
             this.choices.innerHTML = '';
