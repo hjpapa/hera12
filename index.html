@@ -13,8 +13,16 @@
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <title>헤라클레스의 열두 별</title>
+    <!-- 게임 코드를 받는 동안 보이는 첫 화면 (style.css 는 코드와 함께 오므로 여기에 직접) -->
+    <style>
+      html, body { margin: 0; height: 100%; background: #1d2350; }
+      #boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff8e8; font: 20px/1.4 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+      #boot .star { font-size: 64px; animation: bootspin 2.4s ease-in-out infinite; }
+      @keyframes bootspin { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.15) rotate(20deg); } }
+    </style>
   </head>
   <body>
+    <div id="boot"><div class="star">⭐</div><div>헤라클레스의 열두 별</div><div style="font-size:15px;opacity:.7">불러오는 중…</div></div>
     <div id="app">
       <canvas id="game"></canvas>
       <div id="ui"></div>

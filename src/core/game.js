@@ -274,6 +274,9 @@ export class Game {
     const mod = await STAGE_MODULES[key]();
     const StageClass = mod.default;
     const stage = new StageClass(params);
+    // 첫 실행에서 그림을 아직 받는 중이면: 헤라클레스·무기·항아리·부엉이 + 이 스테이지의 미리 받기 목록만 기다림
+    const always = Object.keys(G.sprites.manifest.sprites || {}).filter((id) => /^(hercules|w_|amphora|glau$)/.test(id));
+    await G.ui.screens.waitAssets([...always, ...(stage.preload || [])]);
     stage.id = id;
     const world = new World();
     world.stage = stage;

@@ -33,6 +33,7 @@ export async function goFullscreen() {
 
 export class Screens {
   constructor(root) {
+    this.uiRoot = root;
     this.root = el('div', 'screens', root);
     this.fadeEl = el('div', 'fade', root);
     this.stack = [];
@@ -60,6 +61,24 @@ export class Screens {
       resume('screen');
       if (!G.ui.cutscene && !G.ui.dialog.open) G.input.setVisible(true);
     }
+  }
+
+  // 첫 실행: 이 장면에 필요한 그림을 아직 받는 중이면 진행 막대를 보여 주며 기다림
+  // (나머지 그림은 뒤에서 계속 받고, 받는 대로 임시 그림이 진짜 그림으로 바뀜)
+  async waitAssets(ids) {
+    const S = G.sprites;
+    const total = S.missing(ids);
+    if (!total) return;
+    const wait = S.want(ids);
+    const box = el('div', 'assetload', this.uiRoot);
+    el('div', 'altitle', box, '그림을 불러오는 중…');
+    const fill = el('div', 'alfill', el('div', 'albar', box));
+    const show = () => (fill.style.width = Math.round(((total - S.missing(ids)) / total) * 100) + '%');
+    show();
+    S.onProgress = show;
+    await wait;
+    S.onProgress = null;
+    box.remove();
   }
 
   async fade(on, dur = 0.35) {
@@ -448,7 +467,11 @@ export class Screens {
       const hint = el('div', 'shint', o, '화면을 톡! 눌러 넘겨요');
       const skip = el('button', 'sskip', o, '건너뛰기 ▶▶');
       let i = -1;
-      const next = () => {
+      let busy = false;
+      // 그림책 그림은 펼칠 때 받는다: 모든 장을 미리 받기 시작하고, 넘길 때 그 장의 그림을 기다림 (최대 8초, 못 받으면 임시 그림)
+      pages.forEach((pg) => G.sprites.loadStory(pg.art));
+      const next = async () => {
+        if (busy) return;
         i++;
         if (i >= pages.length) {
           G.audio.stopSpeak();
@@ -457,6 +480,13 @@ export class Screens {
           return;
         }
         const p = pages[i];
+        if (!G.sprites.storyImage(p.art)) {
+          busy = true;
+          txt.textContent = '그림책을 펼치는 중…';
+          await Promise.race([G.sprites.loadStory(p.art), waitReal(8)]);
+          busy = false;
+          if (i >= pages.length) return; // 기다리는 동안 건너뛰기
+        }
         cv.innerHTML = '';
         const c = storyCanvas(p.art);
         c.classList?.add('scanvas');
@@ -474,6 +504,7 @@ export class Screens {
       onTap(o, () => next());
       onTap(skip, () => {
         i = pages.length;
+        busy = false;
         next();
       });
       next();

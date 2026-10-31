@@ -32,11 +32,13 @@ async function boot() {
   const game = new Game();
   game.init();
   G.ui.init();
+  document.getElementById('boot')?.remove();
   G.input.setVisible(false);
   G.ui.hud.show(false);
 
   // 개발용: ?gallery (스프라이트 확인), ?stage=labor03 (바로 가기), ?god (무적)
   if (G.params.has('gallery')) {
+    await G.sprites.ready;
     const { showGallery } = await import('./dev/gallery.js');
     showGallery();
     return;
