@@ -227,6 +227,7 @@ export class Stage {
     G.audio.music('boss');
     G.ui.hud.setBoss(boss, name);
     G.rig.pair = boss;
+    boss.cry = roar; // 화날 때도 같은 울음소리
     boss.start?.();
   }
 

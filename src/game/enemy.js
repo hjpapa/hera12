@@ -611,6 +611,11 @@ export class Boss extends Enemy {
     this.followSpeed = o.speed ?? 3;
     this.rest = o.rest ?? [0.6, 1.2];
     this.started = false;
+    // 체력이 절반 남으면 화가 남 (phase2: false 로 끌 수 있음)
+    this.phase2 = o.phase2 ?? true;
+    this.enraged = false;
+    this.lastPattern = null;
+    this.patternRepeat = 0;
   }
 
   start() {
@@ -631,7 +636,7 @@ export class Boss extends Enemy {
         continue;
       }
       const list = this.patterns();
-      const fn = this.choosePattern ? this.choosePattern(list) : pick(list);
+      const fn = this.choosePattern ? this.choosePattern(list) : this.pickPattern(list);
       try {
         await fn.call(this);
       } catch (e) {
@@ -640,7 +645,44 @@ export class Boss extends Enemy {
       this.clearTele();
       if (!this.alive) break;
       this.mode = 'follow';
-      await wait(Combat.rest(rand(this.rest[0], this.rest[1])));
+      // 화가 나면 쉬는 시간이 짧아지고, 가끔은 숨 돌릴 틈만 주고 바로 다음 공격 (도움 모드에서는 안 함)
+      if (this.enraged && !G.assist && Math.random() < 0.25) {
+        await wait(0.15);
+        continue;
+      }
+      await wait(Combat.rest(rand(this.rest[0], this.rest[1]) * (this.enraged ? 0.75 : 1)));
+    }
+  }
+
+  // 무작위로 고르되, 같은 패턴은 두 번까지만 연속 (목록에 같은 패턴을 여러 번 넣으면 더 자주 나옴)
+  pickPattern(list) {
+    let fn = pick(list);
+    if (fn === this.lastPattern && this.patternRepeat >= 1) {
+      const others = list.filter((f) => f !== fn);
+      if (others.length) fn = pick(others);
+    }
+    this.patternRepeat = fn === this.lastPattern ? this.patternRepeat + 1 : 0;
+    this.lastPattern = fn;
+    return fn;
+  }
+
+  // 2페이즈: "화났다!" 연출. 바뀌는 건 쉬는 시간과 이어 치기 (brain 참고)
+  enrage() {
+    this.enraged = true;
+    G.audio.play(this.cry || 'roar');
+    G.rig.shake(0.4);
+    this.squash(0.3, 0.25);
+    G.fx.text({ x: this.pos.x, y: this.y + this.height * 0.9, z: this.pos.z }, '화났다!', { color: '#ff6a4a', size: 1.4, cls: 'word', rise: 2.6 });
+    G.fx.ring(this.pos, { r0: 0.5, r1: 4, life: 0.4, color: 0xff8a6a });
+    G.ui.hud.toast('조심! 보스가 화났어!', 2);
+    this.onEnrage?.();
+  }
+
+  update(dt) {
+    super.update(dt);
+    // 화가 나 있으면 머리 위로 김이 폴폴
+    if (this.enraged && this.alive && !this.stunned && dt > 0 && Math.random() < dt * 3) {
+      G.fx.particle({ x: this.pos.x + rand(-0.4, 0.4), y: this.y + this.height * 0.95, z: this.pos.z, vy: 1.6, size: 0.7, sizeEnd: 0.1, life: 0.6, color: 0xff9a7a, tile: 'glow', additive: true });
     }
   }
 
@@ -666,6 +708,7 @@ export class Boss extends Enemy {
   takeDamage(n, info) {
     const r = super.takeDamage(n, info);
     G.ui.hud.updateBoss(this);
+    if (r !== false && this.phase2 && !this.enraged && this.alive && this.hp > 0 && this.hp <= this.maxHp * 0.5) this.enrage();
     return r;
   }
 
