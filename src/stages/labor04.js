@@ -97,14 +97,20 @@ export default class Labor04 extends Stage {
 
   async run() {
     await this.intro();
-    this.objective('켄타우로스 폴로스와 이야기하자', this.pholus);
-    await until(() => this.pholusTalked || G.player.pos.z < -8);
-    this.objective('눈 덮인 산을 오르자', { x: 0, z: -24 });
-    await this.ambush(0, -24, 8, () => this.wave(WOLF, 4, 0, -26, 4.5), { text: '하얀 눈늑대들이다!' });
-    this.checkpointAt(0, -26);
-    this.objective('멧돼지를 찾자', { x: 0, z: -48 });
-    await until(() => G.player.pos.z < -40);
-    this.checkpointAt(0, -40);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      await this.resumeHere(0, -40);
+    } else {
+      this.objective('켄타우로스 폴로스와 이야기하자', this.pholus);
+      await until(() => this.pholusTalked || G.player.pos.z < -8);
+      this.objective('눈 덮인 산을 오르자', { x: 0, z: -24 });
+      await this.ambush(0, -24, 8, () => this.wave(WOLF, 4, 0, -26, 4.5), { text: '하얀 눈늑대들이다!' });
+      this.checkpointAt(0, -26);
+      this.objective('멧돼지를 찾자', { x: 0, z: -48 });
+      await until(() => G.player.pos.z < -40);
+      this.checkpointAt(0, -40);
+    }
+    this.saveResume();
     const boar = this.add(new BoarBoss({ x: 0, z: -55 }));
     boar.active = false;
     await this.bossIntro(boar, '에리만토스의 멧돼지', { roar: 'squeal', lines: [

@@ -154,17 +154,24 @@ export default class Labor01 extends Stage {
 
   async run() {
     await this.intro();
-    this.objective('양치기 할아버지와 이야기하자', this.molorchus);
-    await until(() => this.molorchusTalked || G.player.pos.z < -6);
-    this.molorchus.setMark(false);
-    // 늑대 골짜기
-    this.objective('골짜기로 가자', { x: -4, z: -24 });
-    await this.ambush(-4, -24, 8, () => this.wave(WOLF, 3, -4, -26, 4), { text: '늑대들이 나타났다!' });
-    this.checkpointAt(-4, -24);
-    G.audio.music('field');
-    this.objective('사자를 찾아 더 들어가자', { x: 6, z: -46 });
-    await until(() => G.player.pos.z < -40 && G.player.pos.x > -4);
-    this.checkpointAt(4, -40);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      this.molorchus.setMark(false);
+      await this.resumeHere(4, -40);
+    } else {
+      this.objective('양치기 할아버지와 이야기하자', this.molorchus);
+      await until(() => this.molorchusTalked || G.player.pos.z < -6);
+      this.molorchus.setMark(false);
+      // 늑대 골짜기
+      this.objective('골짜기로 가자', { x: -4, z: -24 });
+      await this.ambush(-4, -24, 8, () => this.wave(WOLF, 3, -4, -26, 4), { text: '늑대들이 나타났다!' });
+      this.checkpointAt(-4, -24);
+      G.audio.music('field');
+      this.objective('사자를 찾아 더 들어가자', { x: 6, z: -46 });
+      await until(() => G.player.pos.z < -40 && G.player.pos.x > -4);
+      this.checkpointAt(4, -40);
+    }
+    this.saveResume();
 
     // 사자 등장 + 화살이 팅!
     const lion = (this.lion = this.add(new LionBoss({ x: 6, z: -54 })));

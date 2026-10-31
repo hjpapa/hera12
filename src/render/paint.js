@@ -945,6 +945,13 @@ export function weapon(kind) {
       shape(x, () => { x.moveTo(36, 116); x.quadraticCurveTo(30, 50, 64, 14); x.quadraticCurveTo(98, 50, 92, 116); x.closePath(); }, '#ff8a2a', 6);
       shape(x, () => { x.moveTo(50, 112); x.quadraticCurveTo(48, 70, 64, 48); x.quadraticCurveTo(80, 70, 78, 112); x.closePath(); }, '#ffe24a', 0);
       break;
+    case 'shield':
+      // 방패병의 둥근 청동 방패 (가운데 기준으로 붙임)
+      ell(x, 64, 128, 54, 96, '#c8873a', 8);
+      ell(x, 64, 128, 38, 74, '#e8b04a', 5);
+      star(x, 64, 128, 26, 11, 5, '#fff2b0', 4);
+      shine(x, 44, 76, 7, 26, 0.45);
+      break;
     case 'fist':
       circ(x, 64, 200, 30, '#f7c9a0', 7);
       line(x, [48, 188, 80, 188], 3); line(x, [48, 204, 80, 204], 3);

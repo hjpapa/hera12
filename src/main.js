@@ -10,6 +10,17 @@ import { SpriteBank } from './render/sprites.js';
 import { UI } from './ui/ui.js';
 import { LABORS } from './data/labors.js';
 
+// 과업 도중에 앱이 꺼졌으면: 보스 앞에서부터 이어서 할지 물어봄
+async function askResume(game) {
+  const n = +G.save.data.resume?.n;
+  const L = LABORS[n - 1];
+  if (!L) return false;
+  const yes = await G.ui.screens.confirm(`과업 ${L.n} · ${L.title}<br><small>하던 과업이 있어요. 보스 앞에서부터 이어서 할까요?</small>`, '이어하기', '마을로');
+  if (!yes) return false;
+  await game.goLabor(n, { resume: true });
+  return true;
+}
+
 async function boot() {
   const ui = document.getElementById('ui');
   G.save = new Save();
@@ -35,7 +46,7 @@ async function boot() {
     const id = G.params.get('stage');
     const L = LABORS.find((l) => l.stage === id);
     G.audio.unlock();
-    await game.loadStage(id, L ? { n: L.n } : {});
+    await game.loadStage(id, L ? { n: L.n, resume: G.params.has('resume') } : {});
     return;
   }
 
@@ -44,7 +55,7 @@ async function boot() {
     G.save.reset();
   }
   if (!G.save.data.prologueDone) await game.loadStage('prologue');
-  else await game.goHub();
+  else if (!(mode === 'continue' && (await askResume(game)))) await game.goHub();
   game.requestWakeLock();
 }
 

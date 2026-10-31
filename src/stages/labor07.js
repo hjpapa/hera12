@@ -114,14 +114,24 @@ export default class Labor07 extends Stage {
 
   async run() {
     await this.intro();
-    this.objective('미노스 왕과 이야기하자', this.minos);
-    await until(() => this.gotSpear);
-    this.objective('해변에서 창을 연습하자!', { x: 0, z: -22 });
-    await this.ambush(0, -20, 9, () => [...this.wave(CRAB, 3, 0, -22, 4), ...this.wave(GOAT, 2, 0, -26, 2)], { text: '성난 게와 염소들이다!' });
-    this.checkpointAt(0, -28);
-    this.objective('궁전 앞마당으로!', { x: 0, z: -44 });
-    await until(() => G.player.pos.z < -38);
-    this.checkpointAt(0, -38);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      // 미노스 왕에게 받은 창 (마지막 일격은 꼭 창으로)
+      this.gotSpear = true;
+      this.minos.setMark(false);
+      if (!G.player.skills.includes('spear')) G.player.learnSkill('spear');
+      await this.resumeHere(0, -38);
+    } else {
+      this.objective('미노스 왕과 이야기하자', this.minos);
+      await until(() => this.gotSpear);
+      this.objective('해변에서 창을 연습하자!', { x: 0, z: -22 });
+      await this.ambush(0, -20, 9, () => [...this.wave(CRAB, 3, 0, -22, 4), ...this.wave(GOAT, 2, 0, -26, 2)], { text: '성난 게와 염소들이다!' });
+      this.checkpointAt(0, -28);
+      this.objective('궁전 앞마당으로!', { x: 0, z: -44 });
+      await until(() => G.player.pos.z < -38);
+      this.checkpointAt(0, -38);
+    }
+    this.saveResume();
     const bull = this.add(new BullBoss({ x: 0, z: -56 }));
     bull.active = false;
     await this.bossIntro(bull, '크레타의 황소', { roar: 'moo', lines: [

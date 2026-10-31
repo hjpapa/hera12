@@ -1,6 +1,7 @@
 // 전체 화면 창들: 타이틀 · 일시정지 · 설정 · 과업 지도 · 레벨업 · 결과 · 그림책 · 보상 · 도감 · 상점
 import { G, pause, resume } from '../core/context.js';
-import { el, onTap } from './dom.js';
+import { el, onTap, esc } from './dom.js';
+import { Save } from '../core/save.js';
 import { LABORS } from '../data/labors.js';
 import { CARDS } from '../data/cards.js';
 import { PICKS } from '../game/stats.js';
@@ -127,7 +128,7 @@ export class Screens {
       if (isIOS() && !isStandalone()) {
         el('div', 'ios-hint', c, '아이폰: 아래 <b>공유 버튼</b> → <b>홈 화면에 추가</b>를 하면 전체 화면으로 할 수 있어요!');
       }
-      el('div', 'credit', o, '원작 시나리오 · ' + G.save.data.settings.childName);
+      el('div', 'credit', o, '원작 시나리오 · ' + esc(G.save.data.settings.childName));
     });
   }
 
@@ -220,11 +221,98 @@ export class Screens {
     el('div', 'sgroup', grid, '부모님 메뉴');
     toggle('🦉 항상 도움 모드', 'assist', () => { G.assist = s.assist; });
     toggle('🔓 모든 과업 열기', 'unlockAll');
+    const crow = el('div', 'srow', grid, '<span>💾 저장 코드</span>');
+    onTap(el('button', 'tgl', crow, '열기'), () => { G.audio.play('select'); this.saveCode(); });
+    const lrow = el('div', 'srow', grid, '<span>📊 플레이 기록</span>');
+    onTap(el('button', 'tgl', lrow, '보기'), () => { G.audio.play('select'); this.playLog(); });
     const rrow = el('div', 'srow', grid, '<span>🗑 처음부터 다시</span>');
     const rb = el('button', 'tgl danger', rrow, '지우기');
     onTap(rb, async () => {
       if (await this.confirm('정말 모든 진행을 지울까요?', '지우기', '아니요')) {
         G.save.reset();
+        location.reload();
+      }
+    });
+    this.button(box, '닫기', 'gold', () => this.close(o));
+  }
+
+  // ───────── 플레이 기록 (부모님용: 아이와 해 본 뒤 난이도 조정) ─────────
+  playLog() {
+    const o = this.overlay('menu');
+    const box = this.panel(o, 'panel wide', () => this.close(o));
+    el('div', 'ptitle', box, '📊 플레이 기록');
+    const log = [...(G.save.data.playLog || [])].reverse();
+    if (!log.length) {
+      el('div', 'pinfo', box, '아직 기록이 없어요. 과업을 하나 마치면 여기에 남아요.');
+    } else {
+      el('div', 'loghelp', box, '시간은 대화·멈춤을 뺀 게임 시간이에요. 보스전이 너무 짧거나 길면 <b>src/game/enemy.js</b> 의 <b>BOSS_HP_SCALE</b> 을 바꿔 보세요.');
+      const t = el('table', 'logtable', el('div', 'logwrap', box));
+      const head = el('tr', '', el('thead', '', t));
+      ['날짜', '과업', '시간', '레벨', '쓰러짐', '맞음', '보스전', '도움', '별'].forEach((h) => (el('th', '', head).textContent = h));
+      const body = el('tbody', '', t);
+      const two = (v) => String(v).padStart(2, '0');
+      const mmss = (s) => `${Math.floor(s / 60)}:${two(Math.floor(s % 60))}`;
+      for (const r of log) {
+        const d = new Date(r.at || 0);
+        const tr = el('tr', '', body);
+        const cell = (v) => (el('td', '', tr).textContent = v);
+        cell(r.at ? `${d.getMonth() + 1}/${d.getDate()} ${two(d.getHours())}:${two(d.getMinutes())}` : '-');
+        cell(`${r.n} ${r.title || ''}`);
+        cell(mmss(+r.sec || 0));
+        cell(r.level ?? '-');
+        cell(r.faints ?? '-');
+        cell(r.hurts ?? '-');
+        cell((r.bosses || []).map((b) => `${b.name} ${b.sec}초`).join('\n') || '-');
+        cell(r.assist ? '🦉' : '');
+        cell((r.stars || []).map((s) => (s ? '★' : '☆')).join(''));
+      }
+      this.button(box, '기록 지우기', 'small', async () => {
+        if (await this.confirm('플레이 기록을 모두 지울까요?<br><small>게임 진행은 그대로예요.</small>', '지우기', '아니요')) {
+          G.save.data.playLog = [];
+          G.save.write();
+          this.close(o);
+        }
+      });
+    }
+    this.button(box, '닫기', 'gold', () => this.close(o));
+  }
+
+  // ───────── 저장 코드 (부모님용: 다른 기기·홈 화면 앱으로 옮기기) ─────────
+  saveCode() {
+    const o = this.overlay('menu');
+    const box = this.panel(o, 'panel wide', () => this.close(o));
+    el('div', 'ptitle', box, '💾 저장 코드');
+    el('div', 'loghelp', box, '다른 기기나 홈 화면 앱으로 진행을 옮길 때 써요. 아이폰은 사파리와 홈 화면 앱의 저장이 따로라서, 옮기려면 이 코드가 필요해요.');
+    el('div', 'csub', box, '이 기기의 저장 코드');
+    const out = el('textarea', 'codebox', box);
+    out.readOnly = true;
+    out.value = G.save.exportCode();
+    const copyBtn = this.button(box, '📋 복사하기', 'small', async () => {
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(out.value);
+        ok = true;
+      } catch (e) {
+        out.focus();
+        out.setSelectionRange(0, out.value.length);
+        try { ok = document.execCommand('copy'); } catch (e2) { /* 지원 안 함 */ }
+      }
+      copyBtn.textContent = ok ? '✔ 복사했어요' : '코드를 길게 눌러 복사해 주세요';
+    });
+    el('div', 'csub', box, '다른 기기의 코드 불러오기');
+    const inp = el('textarea', 'codebox', box);
+    inp.placeholder = 'H12- 로 시작하는 코드를 붙여 넣어 주세요';
+    const msg = el('div', 'loghelp', box);
+    this.button(box, '📥 불러오기', 'small', async () => {
+      const d = Save.parseCode(inp.value);
+      if (!d) {
+        msg.textContent = '코드가 올바르지 않아요. 처음부터 끝까지 빠짐없이 붙여 넣었는지 확인해 주세요.';
+        G.audio.play('warn');
+        return;
+      }
+      const cleared = Object.values(d.labors).filter((l) => l.cleared).length;
+      if (await this.confirm(`이 코드로 바꿀까요?<br><small>과업 ${cleared} / 12 · Lv.${d.level} · 동전 ${d.coins}<br>지금 이 기기의 진행은 이 코드의 진행으로 바뀌어요.</small>`, '바꾸기', '아니요')) {
+        G.save.importData(d);
         location.reload();
       }
     });
@@ -494,7 +582,7 @@ export class Screens {
       cr.innerHTML = `
         <div class="ct">헤르쿨레스자리</div>
         <div class="cs">맑은 여름밤, 하늘을 올려다보면 지금도 헤라클레스를 만날 수 있어요.</div>
-        <div class="cl"><b>원작 시나리오</b><br>${G.save.data.settings.childName}</div>
+        <div class="cl"><b>원작 시나리오</b><br>${esc(G.save.data.settings.childName)}</div>
         <div class="cl"><b>게임 만들기</b><br>Claude · Codex</div>
         <div class="cl"><b>참고한 이야기</b><br>그리스 신화 · 아폴로도로스 『비블리오테케』</div>
         <div class="cl big">끝 · 그리고 새로운 시작!</div>`;

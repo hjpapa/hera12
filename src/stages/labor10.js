@@ -160,54 +160,61 @@ export default class Labor10 extends Stage {
 
   async run() {
     await this.intro();
-    // 1) 헤라클레스의 기둥
-    this.objective('길을 막은 산을 쾅쾅 쳐 보자!', this.rock);
-    await this.say('hercules', '커다란 산이 길을 막고 있네… 이 정도쯤이야!');
-    this.rock.hittable = true;
-    await until(() => this.rock.hits >= 6);
-    this.rock.hittable = false;
-    this.cutscene(true);
-    this.focus(0, -9, 0.9);
-    G.audio.play('thunder');
-    G.rig.shake(1);
-    for (let i = 0; i < 20; i++) {
-      this.mount.scale.set(1 - i * 0.05, 1 - i * 0.05, 1 - i * 0.05);
-      G.fx.dust({ x: rand(-3, 3), z: -9 + rand(-2, 2) }, { count: 2, size: 2, color: 0xc8a888 });
-      await waitReal(0.04);
+    // 과업 중간 이어하기: 앱이 꺼졌다 다시 들어왔으면 보스 앞에서 바로 시작
+    if (this.resuming) {
+      // 산 가르기·황금 잔 항해는 이미 지나간 것으로 (바다 건너 섬에서 시작)
+      await this.resumeHere(0, -84);
+    } else {
+      // 1) 헤라클레스의 기둥
+      this.objective('길을 막은 산을 쾅쾅 쳐 보자!', this.rock);
+      await this.say('hercules', '커다란 산이 길을 막고 있네… 이 정도쯤이야!');
+      this.rock.hittable = true;
+      await until(() => this.rock.hits >= 6);
+      this.rock.hittable = false;
+      this.cutscene(true);
+      this.focus(0, -9, 0.9);
+      G.audio.play('thunder');
+      G.rig.shake(1);
+      for (let i = 0; i < 20; i++) {
+        this.mount.scale.set(1 - i * 0.05, 1 - i * 0.05, 1 - i * 0.05);
+        G.fx.dust({ x: rand(-3, 3), z: -9 + rand(-2, 2) }, { count: 2, size: 2, color: 0xc8a888 });
+        await waitReal(0.04);
+      }
+      this.mount.visible = false;
+      this.rock.world.remove(this.rock);
+      this.world.unblock(this.mountainBlock);
+      this.B.column(-4.5, -9, { h: 8, color: 0xe8d0b0, r: 0.9 });
+      this.B.column(4.5, -9, { h: 8, color: 0xe8d0b0, r: 0.9 });
+      G.fx.starPop({ x: -4.5, y: 0, z: -9 }, 1.4);
+      G.fx.starPop({ x: 4.5, y: 0, z: -9 }, 1.4);
+      await this.say('glau', '우와! 산이 둘로 갈라졌어! 이 두 기둥을 사람들은 "헤라클레스의 기둥"이라고 부르게 될 거야!');
+      this.unfocus();
+      this.cutscene(false);
+      // 2) 헬리오스의 황금 잔
+      this.objective('바닷가로 가자', { x: 0, z: -20 });
+      await until(() => G.player.pos.z < -17);
+      this.checkpointAt(0, -20);
+      this.cutscene(true);
+      G.player.faceToward(0, -40);
+      this.focus(0, -26, 0.85);
+      await this.say('hercules', '너무 더워!! 해님, 좀 살살 비춰 주세요!');
+      this.add(new Arrow({ x: G.player.pos.x, z: G.player.pos.z, dirX: 0, dirZ: -1, damage: 0 }));
+      G.audio.play('arrow');
+      await waitReal(0.6);
+      const helios = this.add(new NPC({ sprite: 'helios', x: 3, z: -25 }));
+      helios.y = 2.5;
+      G.fx.starPop(helios.pos, 1.6);
+      G.audio.play('magic');
+      G.ui.hud.flash('gold');
+      await this.say('helios', '하하하! 태양에게 활을 겨누다니, 배짱 한번 좋구나! 내 황금 잔을 빌려주마.');
+      G.fx.starPop(helios.pos, 1);
+      helios.world.remove(helios);
+      this.unfocus();
+      this.cutscene(false);
+      await this.cupRide(-24, -78);
+      this.checkpointAt(0, -84);
     }
-    this.mount.visible = false;
-    this.rock.world.remove(this.rock);
-    this.world.unblock(this.mountainBlock);
-    this.B.column(-4.5, -9, { h: 8, color: 0xe8d0b0, r: 0.9 });
-    this.B.column(4.5, -9, { h: 8, color: 0xe8d0b0, r: 0.9 });
-    G.fx.starPop({ x: -4.5, y: 0, z: -9 }, 1.4);
-    G.fx.starPop({ x: 4.5, y: 0, z: -9 }, 1.4);
-    await this.say('glau', '우와! 산이 둘로 갈라졌어! 이 두 기둥을 사람들은 "헤라클레스의 기둥"이라고 부르게 될 거야!');
-    this.unfocus();
-    this.cutscene(false);
-    // 2) 헬리오스의 황금 잔
-    this.objective('바닷가로 가자', { x: 0, z: -20 });
-    await until(() => G.player.pos.z < -17);
-    this.checkpointAt(0, -20);
-    this.cutscene(true);
-    G.player.faceToward(0, -40);
-    this.focus(0, -26, 0.85);
-    await this.say('hercules', '너무 더워!! 해님, 좀 살살 비춰 주세요!');
-    this.add(new Arrow({ x: G.player.pos.x, z: G.player.pos.z, dirX: 0, dirZ: -1, damage: 0 }));
-    G.audio.play('arrow');
-    await waitReal(0.6);
-    const helios = this.add(new NPC({ sprite: 'helios', x: 3, z: -25 }));
-    helios.y = 2.5;
-    G.fx.starPop(helios.pos, 1.6);
-    G.audio.play('magic');
-    G.ui.hud.flash('gold');
-    await this.say('helios', '하하하! 태양에게 활을 겨누다니, 배짱 한번 좋구나! 내 황금 잔을 빌려주마.');
-    G.fx.starPop(helios.pos, 1);
-    helios.world.remove(helios);
-    this.unfocus();
-    this.cutscene(false);
-    await this.cupRide(-24, -78);
-    this.checkpointAt(0, -84);
+    this.saveResume();
     // 3) 오르트로스
     const orth = this.add(new Orthrus({ x: 0, z: -96 }));
     orth.active = false;

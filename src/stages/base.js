@@ -345,6 +345,28 @@ export class Stage {
     this.toast('🦉 도움 모드! 적들이 천천히 공격해요', 2.8);
   }
 
+  // ───────── 과업 중간 이어하기 ─────────
+  // 보스 앞에 오면 저장해 둔다. 앱이 꺼진 뒤 타이틀에서 이어하기를 누르면 그 과업의 보스 앞에서 시작
+  get resuming() {
+    return !!this.params.resume;
+  }
+
+  saveResume() {
+    G.save.data.resume = { n: this.n, at: Date.now() };
+    G.save.write();
+  }
+
+  // 이어하기로 들어왔을 때: 정해 둔 자리로 옮기고 그곳을 체크포인트로
+  async resumeHere(x, z) {
+    const p = G.player;
+    p.pos.set(x, 0, z);
+    p.lastSafe = { x, z };
+    p.vel.set(0, 0, 0);
+    this.checkpointAt(x, z);
+    G.rig.snap();
+    await this.banner('보스 앞에서 다시 시작!', '', 1.6);
+  }
+
   // ───────── 밸런스 기록 (?report) ─────────
   bossFightStart(e, name) {
     if (this.bossLog.some((b) => b.e === e && b.end === null)) return;

@@ -256,6 +256,60 @@ export class Enemy extends Entity {
   }
 }
 
+// ───────── 방패병 ─────────
+// 앞에서 오는 공격은 방패로 막는다. 3단 콤보 마지막 한 방(큰 공격)·필살기·창은 방패를 깬다.
+// 옆·뒤에서 때리거나, 딸랑이로 어질어질하게 만들면 그대로 맞는다. 몸을 천천히 돌려서 구르기로 뒤로 돌아갈 틈이 있다.
+const SHIELD_TURN = 2.2; // 초당 도는 각도(라디안)
+const FRONT = 0.34; // 앞에서 70° 안쪽이면 "앞"
+
+export class ShieldEnemy extends Enemy {
+  constructor(o) {
+    super({ ai: 'melee', ...o });
+    this.shieldUp = true;
+    const b = this.visual.body;
+    this.visual.addPart('shield', 'w_shield', { x: b.w * 0.3, y: b.h * 0.42, z: 0.06, center: true });
+  }
+
+  damageFilter(info, dx, dz) {
+    if (!this.shieldUp || this.stunned || info.type === 'poison') return null;
+    // dx,dz: 때린 쪽 → 방패병. 방패병이 보는 방향에 때린 쪽이 있으면 앞
+    const d = this.dir;
+    if (-(dx * d.x + dz * d.z) < FRONT) return null;
+    if (info.big || info.type === 'special' || info.type === 'spear') {
+      this.breakShield();
+      return null;
+    }
+    if (!G.save.data.shieldHint) {
+      G.save.data.shieldHint = true;
+      G.ui.hud.toast('방패병이다! 뒤로 돌아가거나, 3단 공격 마지막 한 방으로 쾅!', 3.2);
+      G.audio.speak('방패병이다! 뒤로 돌아가거나, 3단 공격 마지막 한 방으로 쾅!', { pitch: 1.3 });
+    }
+    return { blocked: true, text: '막았다!', sound: 'ting', color: '#ffffff', knock: 1.5 };
+  }
+
+  breakShield() {
+    this.shieldUp = false;
+    this.visual.removePart('shield');
+    G.audio.play('rock');
+    G.rig.shake(0.3);
+    G.fx.burst(this.pos, { count: 12, color: [0xc8873a, 0xe8b04a, 0x3a2618], tile: 'leaf', size: 0.5, speed: 6, gravity: 18, life: 0.8, additive: false, floor: 0.05, yOff: 1 });
+    G.fx.text({ x: this.pos.x, y: this.y + this.height * 0.7, z: this.pos.z }, '방패가 깨졌다!', { color: '#ffe86a', size: 1.1, cls: 'word', rise: 2.2 });
+  }
+
+  think(dt) {
+    const before = this.dirAngle;
+    super.think(dt);
+    if (!this.shieldUp) return;
+    // 방패를 든 동안은 천천히 돈다 (구르기로 뒤를 잡을 수 있게)
+    const diff = Math.atan2(Math.sin(this.dirAngle - before), Math.cos(this.dirAngle - before));
+    const max = SHIELD_TURN * dt;
+    if (Math.abs(diff) > max) {
+      this.dirAngle = before + Math.sign(diff) * max;
+      this.updateFlip(Math.cos(this.dirAngle), Math.sin(this.dirAngle));
+    }
+  }
+}
+
 // ───────── 일반 적 행동 ─────────
 const AI = {
   dummy(e, dt) {
