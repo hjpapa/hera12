@@ -305,3 +305,11 @@ export const LABORS = [
 export function labor(n) {
   return LABORS[n - 1];
 }
+
+// 아직 못 받은 별 (다시 하기 도우미: 과업의 문·과업 지도). 첫 번째 별(과업 완료)은 깨면 늘 받음
+export function missingStars(L, st) {
+  const out = [];
+  if (!st.stars?.[1]) out.push({ icon: '🏺', text: '숨은 황금 항아리' });
+  if (!st.stars?.[2]) out.push({ icon: '🎯', text: '도전: ' + L.challenge.label });
+  return out;
+}

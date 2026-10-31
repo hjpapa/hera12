@@ -4,7 +4,7 @@ import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
 import { Enemy } from '../game/enemy.js';
 import { NPC } from '../game/npc.js';
-import { LABORS } from '../data/labors.js';
+import { LABORS, missingStars } from '../data/labors.js';
 import { CONSTELLATION } from '../ui/storyart.js';
 import { TAU, rand } from '../core/util.js';
 
@@ -331,7 +331,10 @@ export default class Hub extends Stage {
   async enterGate(n) {
     const L = LABORS[n - 1];
     const st = G.save.laborState(n);
-    const go = await this.choose('glau', st.cleared ? `${L.title}에 다시 가 볼까? (별 ${st.stars.filter(Boolean).length}/3)` : `과업 ${n}, ${L.title}(으)로 출발할까?`, ['출발!', '아직이요']);
+    // 다시 하는 과업이면 어떤 별이 남았는지 알려 줌
+    const miss = missingStars(L, st).map((m) => m.icon + ' ' + m.text);
+    const ask = !st.cleared ? `과업 ${n}, ${L.title}(으)로 출발할까?` : miss.length ? `${L.title}에 다시 가 볼까? 남은 별은 ${miss.join(', ')}!` : `${L.title}에 다시 가 볼까? 여기 별은 다 모았어!`;
+    const go = await this.choose('glau', ask, ['출발!', '아직이요']);
     if (go === 0) G.game.goLabor(n);
   }
 

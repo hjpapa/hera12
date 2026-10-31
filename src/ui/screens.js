@@ -2,7 +2,7 @@
 import { G, pause, resume } from '../core/context.js';
 import { el, onTap, esc } from './dom.js';
 import { Save } from '../core/save.js';
-import { LABORS } from '../data/labors.js';
+import { LABORS, missingStars } from '../data/labors.js';
 import { CARDS } from '../data/cards.js';
 import { PICKS } from '../game/stats.js';
 import { storyCanvas, CONSTELLATION, CONST_LINES } from './storyart.js';
@@ -397,6 +397,7 @@ export class Screens {
         im.src = G.sprites.portraitURL(L.sprite);
         el('div', 'lname', card, L.title);
         el('div', 'lstars', card, (st.stars || [false, false, false]).map((s) => (s ? '★' : '☆')).join(''));
+        if (st.cleared) el('div', 'lmiss', card, missingStars(L, st).map((m) => m.icon).join(' ') || '✨');
         if (!open) el('div', 'llock', card, '🔒');
         if (open && travel) {
           onTap(card, () => {
@@ -406,6 +407,7 @@ export class Screens {
           });
         }
       }
+      el('div', 'mhelp', box, '남은 별: 🏺 숨은 황금 항아리 · 🎯 도전 · ✨ 다 모았어요');
       el('div', 'mhelp', box, G.save.data.settings.unlockAll ? '모든 과업이 열려 있어요 (부모님 메뉴)' : '왕에게 말을 걸면 다음 과업이 열려요');
       this.button(box, '닫기', '', () => { this.close(o); res(null); });
     });

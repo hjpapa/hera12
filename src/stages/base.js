@@ -422,5 +422,7 @@ export class Stage {
       if (!done) G.audio.speak('도전! ' + c.label, { pitch: 1.2 });
     }
     if (this.mapBeam) wait(3.4).then(() => this.mapBeam && this.toast('🗺 보물 지도: 황금 빛기둥 아래에 항아리가 있어!', 3));
+    // 다시 하는 과업인데 황금 항아리를 아직 못 찾았으면 한 번 알려 줌
+    else if (G.save.laborState(L.n).cleared && !G.save.laborState(L.n).stars?.[1]) wait(3.4).then(() => !this.treasure && this.toast('🏺 이 과업 어딘가에 숨은 황금 항아리가 있어!', 3));
   }
 }
