@@ -229,6 +229,18 @@ export class Screens {
         G.game.applyQuality();
       });
     });
+    const trow = el('div', 'srow', grid, '<span>⏰ 놀이 시간 알림</span>');
+    const ts = el('div', 'seg', trow);
+    [[0, '끄기'], [20, '20분'], [30, '30분'], [45, '45분']].forEach(([k, t]) => {
+      const b = el('button', 'segb' + ((s.playTime || 0) === k ? ' on' : ''), ts, t);
+      onTap(b, () => {
+        s.playTime = k;
+        ts.querySelectorAll('.segb').forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        G.save.write();
+        G.audio.play('select');
+      });
+    });
     const nrow = el('div', 'srow', grid, '<span>✏️ 원작자 이름</span>');
     const ni = el('input', 'name-in', nrow);
     ni.value = s.childName;
@@ -253,6 +265,25 @@ export class Screens {
       }
     });
     this.button(box, '닫기', 'gold', () => this.close(o));
+  }
+
+  // ───────── 놀이 시간 알림 ─────────
+  // true: 조금 더 하기, false: 오늘은 그만 (쉬는 화면)
+  async playTimeUp(min) {
+    const i = await G.ui.dialog.choose('glau', `부엉! 벌써 ${min}분이나 모험했어. 오늘은 여기까지 할까? 지금까지 한 건 다 저장돼 있어!`, ['그만할래', '조금만 더 할래']);
+    G.ui.dialog.hide();
+    if (i === 1) return true;
+    G.save.write();
+    G.audio.music(null);
+    G.audio.jingle('star');
+    const o = this.overlay('rest');
+    el('div', 'rest-moon', o, '🌙');
+    el('div', 'rest-title', o, '오늘 모험 끝!');
+    el('div', 'rest-sub', o, `영웅의 별 ★ ${G.save.starCount()} / 36 · 과업 ${G.save.clearedCount()} / 12`);
+    el('div', 'rest-sub', o, '푹 쉬고, 내일 또 만나요!');
+    G.audio.speak('오늘 모험 끝! 푹 쉬고, 내일 또 만나요!', { pitch: 1.2 });
+    this.button(o, '처음 화면으로', 'small', () => location.reload());
+    return new Promise(() => {}); // 처음 화면으로 갈 때까지 그대로
   }
 
   // ───────── 플레이 기록 (부모님용: 아이와 해 본 뒤 난이도 조정) ─────────

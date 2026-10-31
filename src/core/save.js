@@ -28,6 +28,7 @@ function fresh() {
       quality: 'auto',
       unlockAll: false,
       assist: false, // 항상 도움 모드 (적이 천천히 공격)
+      playTime: 0, // 놀이 시간 알림 (분, 0 = 끔)
       childName: '우리 아이',
     },
   };
@@ -73,6 +74,7 @@ function sanitize(d) {
   out.settings.sfx = num(s.sfx, base.settings.sfx, 0, 1);
   for (const k of ['voice', 'vibrate', 'unlockAll', 'assist']) out.settings[k] = typeof s[k] === 'boolean' ? s[k] : base.settings[k];
   out.settings.quality = QUALITIES.includes(s.quality) ? s.quality : 'auto';
+  out.settings.playTime = [0, 20, 30, 45].includes(s.playTime) ? s.playTime : 0;
   out.settings.childName = typeof s.childName === 'string' && s.childName.trim() ? s.childName.trim().slice(0, 12) : base.settings.childName;
   return out;
 }

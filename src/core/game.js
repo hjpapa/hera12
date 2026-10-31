@@ -410,6 +410,7 @@ export class Game {
     G.guide.update(G.realTime);
     G.ui.update(dt, rawDt);
     this.checkLevelUp();
+    this.checkPlayTime();
 
     const p = G.player;
     if (p) {
@@ -428,6 +429,28 @@ export class Game {
         this.fpsN = 0;
       }
     }
+  }
+
+  // 놀이 시간 알림 (부모님 메뉴): 화면이 켜져 있던 시간이 정해 둔 분을 넘으면,
+  // 과업 중에는 한 번만 살짝 알려 주고, 마을에 돌아와 한숨 돌렸을 때 부엉이가 물어본다
+  checkPlayTime() {
+    const min = G.save.data.settings.playTime;
+    if (!min || this.playTimeBusy || !G.stage || this.loading) return;
+    if (G.realTime < (this.playTimeDue ?? min * 60)) return;
+    if (G.stage.id !== 'hub') {
+      if (!this.playTimeHinted && !G.paused && !G.ui.cutscene) {
+        this.playTimeHinted = true;
+        G.ui.hud.toast('⏰ 이 과업을 마치면 잠깐 쉬어 볼까?', 3.2);
+      }
+      return;
+    }
+    if (G.paused || G.ui.cutscene || G.ui.dialog.open || G.ui.screens.open) return;
+    this.playTimeBusy = true;
+    G.ui.screens.playTimeUp(min).then((more) => {
+      this.playTimeBusy = false;
+      this.playTimeHinted = false;
+      if (more) this.playTimeDue = G.realTime + 10 * 60;
+    });
   }
 
   async checkLevelUp() {
