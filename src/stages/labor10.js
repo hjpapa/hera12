@@ -53,10 +53,11 @@ class Geryon extends Boss {
   }
   async pSpin() {
     this.mode = 'face';
-    this.tele = G.fx.telegraphCircle(this.pos, 5, 1.0);
+    const wu = Combat.windup(1.0);
+    this.tele = G.fx.telegraphCircle(this.pos, 5, wu);
     this.warn();
     this.state = 'windup';
-    await wait(1.0);
+    await wait(wu);
     this.clearTele();
     if (this.stopped()) return;
     G.audio.play('whoosh');

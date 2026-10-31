@@ -173,8 +173,13 @@ export default class Labor08 extends Stage {
     this.mares.forEach((m) => (m.active = true));
     this.calmed = 0;
     this.counter('얌전해진 암말 0 / 4');
-    this.objective('날뛰는 암말들을 진정시키자!');
-    await until(() => this.calmed >= 4);
+    // 노란 화살표가 아직 날뛰는 가장 가까운 암말을 가리킴 (멀리 떨어진 암말은 다가가야 움직이기 시작함)
+    this.objective('날뛰는 암말들을 진정시키자!', this.nearestWildMare(), { beam: false });
+    await until(() => {
+      const m = this.nearestWildMare();
+      if (m && G.guide.target !== m) G.guide.set(m, { beam: false });
+      return this.calmed >= 4;
+    });
     this.counter(null);
     G.audio.music(null);
     G.audio.jingle('victory');
@@ -185,6 +190,17 @@ export default class Labor08 extends Stage {
     await this.say('hercules', '자, 모두 배에 타자! 에우리스테우스 왕에게 가는 거야!');
     await this.giveRewards();
     await this.complete();
+  }
+
+  nearestWildMare() {
+    const p = G.player.pos;
+    let best = null, bd = Infinity;
+    for (const m of this.mares) {
+      if (m.calm) continue;
+      const d = Math.hypot(m.pos.x - p.x, m.pos.z - p.z);
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
   }
 
   mareCalm() {

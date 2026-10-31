@@ -399,7 +399,7 @@ export class Hazard extends Entity {
     if (Math.random() < dt * 8) G.fx.particle({ x: this.pos.x + rand(-1, 1) * this.radius * 0.7, y: 0.1, z: this.pos.z + rand(-1, 1) * this.radius * 0.7, vy: 1.2, size: 0.4, life: 0.6, color: this.color, tile: 'glow', additive: true });
     this.tick -= dt;
     if (this.tick <= 0) {
-      if (Combat.hitPlayerIfIn(this.pos, this.radius * 0.85, this.damage, { knock: 2 })) this.tick = 0.8;
+      if (Combat.hitPlayerIfIn(this.pos, this.radius * 0.85, this.damage, { knock: 2, dodgeable: false })) this.tick = 0.8;
     }
   }
 

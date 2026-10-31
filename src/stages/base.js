@@ -1,4 +1,5 @@
 // 스테이지 기본: 스크립트에서 쓰는 도우미 모음 (대화 · 목표 · 적 소환 · 보스 · 보상 · 완료)
+import * as THREE from 'three';
 import { G } from '../core/context.js';
 import { wait, until, waitReal } from '../core/script.js';
 import { Builder } from '../render/props.js';
@@ -20,7 +21,9 @@ export class Stage {
     this.skill = null;
     this.treasure = false;
     this.rewardsGiven = false;
-    this.stats = { kills: 0, maxCombo: 0, coins: 0 };
+    // 결과 화면 기록 + 도전 판정 (hurts: 맞은 횟수, damage: 잃은 하트(반 칸 단위), perfects: 완벽한 회피 횟수)
+    this.stats = { kills: 0, maxCombo: 0, coins: 0, hurts: 0, damage: 0, perfects: 0 };
+    this.bossLog = []; // 보스전 시간 (?report)
     this.preload = [];
   }
 
@@ -202,13 +205,35 @@ export class Stage {
 
   // 숨은 황금 항아리 = 별 하나
   treasurePot(x, z) {
-    return this.world.add(new Pot({
+    const pot = this.world.add(new Pot({
       x, z, gold: true,
       onBreak: () => {
         this.treasure = true;
         this.toast('★ 숨은 황금 항아리를 찾았다!', 2.6);
+        if (this.mapBeam) {
+          // 보물 지도는 항아리를 찾았을 때 다 쓴 것으로
+          this.mapBeam.removeFromParent();
+          this.mapBeam.geometry.dispose();
+          this.mapBeam.material.dispose();
+          this.mapBeam = null;
+          G.save.data.shop.map = Math.max(0, (G.save.data.shop.map || 0) - 1);
+          G.save.write();
+        }
       },
     }));
+    // 부엉이 보물 지도(상점)가 있고 아직 못 찾은 항아리면 위에 황금 빛기둥
+    if (G.save.data.shop.map > 0 && this.n && !G.save.laborState(this.n).stars?.[1]) {
+      const mat = new THREE.MeshBasicMaterial({ color: 0xffb84a, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.8, 24, 12, 1, true), mat);
+      beam.position.set(x, 12, z);
+      beam.userData.dynamic = true;
+      this.world.root.add(beam);
+      this.world.onUpdate(() => {
+        if (this.mapBeam) mat.opacity = 0.3 + Math.sin(G.time * 4) * 0.12;
+      });
+      this.mapBeam = beam;
+    }
+    return pot;
   }
 
   // ───────── 보스 ─────────
@@ -226,6 +251,7 @@ export class Stage {
     G.audio.music('boss');
     G.ui.hud.setBoss(boss, name);
     G.rig.pair = boss;
+    boss.cry = roar; // 화날 때도 같은 울음소리
     boss.start?.();
   }
 
@@ -262,6 +288,99 @@ export class Stage {
     G.save.write();
   }
 
+  // ───────── 도전 (과업별 세 번째 별) ─────────
+  // labors.js 의 challenge: { type, label, n | time }
+  challengeMet(elapsed = G.time - (this.startTime || 0)) {
+    const c = this.labor?.challenge;
+    if (!c) return false;
+    const st = this.stats;
+    switch (c.type) {
+      case 'noFaint': return (G.player?.faints || 0) === 0;
+      case 'fast': return elapsed <= c.time;
+      case 'combo': return st.maxCombo >= c.n;
+      case 'perfect': return st.perfects >= c.n;
+      case 'hurtMax': return st.hurts <= c.n;
+    }
+    return false;
+  }
+
+  // 모으는 도전(콤보·완벽한 회피)은 이룬 순간 바로 칭찬, "n번까지만 맞기"는 마지막 한 번 남았을 때 살짝 알려 줌
+  checkChallenge() {
+    const c = this.labor?.challenge;
+    if (!c || this.challengeShown) return;
+    if (c.type === 'hurtMax') {
+      if (this.stats.hurts !== c.n) return;
+      this.challengeShown = true;
+      this.toast('조심조심! 더 맞으면 도전은 다음 기회에', 2.6);
+      return;
+    }
+    if (c.type !== 'combo' && c.type !== 'perfect') return;
+    if (!this.challengeMet()) return;
+    this.challengeShown = true;
+    this.toast(`★ 도전 성공! ${c.label}`, 2.6);
+    G.audio.jingle('star');
+    G.audio.speak('도전 성공! ' + c.label, { pitch: 1.35 });
+  }
+
+  // ───────── 도움 모드 ─────────
+  // 같은 과업에서 두 번 쓰러지면 부엉이가 한 번 물어본다
+  async onRespawn(p) {
+    if (G.assist || this.assistAsked || p.faints < 2 || !this.labor) return;
+    this.assistAsked = true;
+    await until(() => !G.ui.dialog.open && !G.ui.cutscene && !G.ui.screens.open && !G.game.loading);
+    if (G.stage !== this || G.assist) return;
+    const i = await this.choose('glau', '부엉! 조금 어렵지? 내가 도와줄까? 적들이 천천히 공격하게 해 줄게!', ['도와줘!', '혼자 해 볼래!']);
+    if (i === 0) this.setAssist(true);
+  }
+
+  setAssist(on) {
+    G.assist = on;
+    if (!on) return;
+    const p = G.player;
+    if (p) {
+      G.fx.starPop(p.pos, 0.9);
+      G.fx.burst(p.pos, { count: 10, color: [0x8fe0ff, 0xffffff], tile: 'star', size: 0.45, speed: 4, gravity: -1 });
+    }
+    G.audio.play('magic');
+    this.toast('🦉 도움 모드! 적들이 천천히 공격해요', 2.8);
+  }
+
+  // ───────── 밸런스 기록 (?report) ─────────
+  bossFightStart(e, name) {
+    if (this.bossLog.some((b) => b.e === e && b.end === null)) return;
+    this.bossLog.push({ e, name, start: G.time, end: null });
+  }
+
+  bossFightEnd(e) {
+    const b = this.bossLog.find((x) => x.e === e && x.end === null);
+    if (b) b.end = G.time;
+  }
+
+  balanceReport(elapsed, stars) {
+    const p = G.player;
+    const st = this.stats;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    return {
+      n: this.n,
+      title: this.labor?.title,
+      sec: Math.round(elapsed),
+      level: G.save.data.level,
+      atk: r1(p.stats.atk),
+      hearts: p.maxHp / 2,
+      faints: p.faints,
+      hurts: st.hurts,
+      lostHearts: r1(st.damage / 2),
+      kills: st.kills,
+      maxCombo: st.maxCombo,
+      perfects: st.perfects,
+      coins: st.coins,
+      assist: G.assist,
+      stars,
+      // 체력 바가 꺼지지 않고 끝난 보스전은 과업이 끝난 때까지로 셈
+      bosses: this.bossLog.map((b) => ({ name: b.name, sec: Math.round((b.end ?? G.time) - b.start) })),
+    };
+  }
+
   async complete(opts = {}) {
     G.guide.set(null);
     G.ui.hud.setObjective(null);
@@ -274,5 +393,12 @@ export class Stage {
     const L = this.labor;
     if (!L) return;
     await this.banner(`과업 ${L.n} · ${L.title}`, L.place, 2.4);
+    const c = L.challenge;
+    if (c) {
+      const done = G.save.laborState(L.n).stars?.[2];
+      this.toast(`${done ? '★' : '☆'} 도전: ${c.label}`, 3.2);
+      if (!done) G.audio.speak('도전! ' + c.label, { pitch: 1.2 });
+    }
+    if (this.mapBeam) wait(3.4).then(() => this.mapBeam && this.toast('🗺 보물 지도: 황금 빛기둥 아래에 항아리가 있어!', 3));
   }
 }

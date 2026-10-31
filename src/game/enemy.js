@@ -8,6 +8,21 @@ import { Shot, dropLoot } from './items.js';
 import { wait, until } from '../core/script.js';
 import { rand, randInt, clamp, damp, dampAngle, TAU, pick } from '../core/util.js';
 
+// 보스 체력 배율. 아이와 플레이해 보고 이 숫자 하나로 조정한다 (?report 로 보스전 시간을 볼 수 있음).
+// Boss 를 상속한 보스 전부 + 체력 대신 다른 것으로 싸우는 보스(사자 어질어질 게이지, 히드라·라돈 머리)에 적용
+export const BOSS_HP_SCALE = 2;
+
+// ───────── 공격 차례 ─────────
+// 여러 마리가 한꺼번에 덤비면 빨간 예고가 겹쳐서 아이가 보고 피하기 어렵다.
+// 동시에 공격하는 일반 적은 최대 2마리(보스전·도움 모드에서는 1마리), 공격을 시작하는 사이에는 조금씩 간격을 둔다.
+// 차례를 못 받은 적은 조금 떨어져서 플레이어 둘레를 돌며 기다린다.
+const TURN_GAP = 0.45;
+let lastTurn = -99;
+
+function attackSlots() {
+  return G.assist || G.ui.hud.boss ? 1 : 2;
+}
+
 export class Enemy extends Entity {
   constructor(o) {
     super({ team: 'enemy', ...o });
@@ -31,6 +46,8 @@ export class Enemy extends Entity {
     this.tele = null;
     this.hidden = false;
     this.orbitA = rand(0, TAU);
+    this.orbitDir = Math.random() < 0.5 ? 1 : -1;
+    this.wu = 0; // 이번 공격의 예고 시간 (도움 모드면 길어짐)
     this.active = o.active ?? true;
     if (this.cfg.ai === 'flyer') {
       this.flying = true;
@@ -41,6 +58,43 @@ export class Enemy extends Entity {
 
   get player() {
     return G.player;
+  }
+
+  // 지금 공격하는 중인지 (예고 포함). 동시에 공격하는 수를 셀 때 쓴다
+  get attacking() {
+    if (this.stunned || !this.active) return false;
+    const s = this.state;
+    if (s === 'hop') return !!this.hopTarget?.attack;
+    return s === 'windup' || s === 'attack' || s === 'charge' || s === 'aim' || s === 'dive';
+  }
+
+  slotsFull() {
+    const max = attackSlots();
+    let n = 0;
+    for (const o of this.world.entities) {
+      if (o === this || o.team !== 'enemy' || !o.alive || o.removed || o.boss) continue;
+      if (o.attacking && ++n >= max) return true;
+    }
+    return false;
+  }
+
+  // 공격 차례 받기 (받으면 true)
+  claimTurn() {
+    if (G.time - lastTurn < TURN_GAP || this.slotsFull()) return false;
+    lastTurn = G.time;
+    return true;
+  }
+
+  resetCooldown() {
+    this.cooldown = Combat.rest(rand(this.cfg.cd[0], this.cfg.cd[1]));
+  }
+
+  // 차례를 기다리며 플레이어 둘레를 천천히 돌기
+  circle(dt, R) {
+    const p = this.player;
+    const a = Math.atan2(this.pos.z - p.pos.z, this.pos.x - p.pos.x) + this.orbitDir * 0.5;
+    this.moveToward(p.pos.x + Math.cos(a) * R, p.pos.z + Math.sin(a) * R, this.cfg.speed * 0.7, dt);
+    this.faceToward(p.pos.x, p.pos.z);
   }
 
   distP() {
@@ -219,15 +273,23 @@ const AI = {
         break;
       case 'chase':
         if (d > e.cfg.aggro * 1.6) { e.state = 'idle'; break; }
+        // 다른 적들이 공격 중이면 조금 떨어져서 차례를 기다림
+        if (e.cooldown <= 0 && e.slotsFull()) { e.circle(dt, e.cfg.range + 1.6); break; }
         if (d < e.cfg.range && e.cooldown <= 0) {
+          if (!e.claimTurn()) {
+            e.stop(dt);
+            e.faceToward(p.pos.x, p.pos.z);
+            break;
+          }
           e.state = 'windup';
           e.stateT = 0;
+          e.wu = Combat.windup(e.cfg.windup);
           e.faceToward(p.pos.x, p.pos.z);
           e.lockX = p.pos.x;
           e.lockZ = p.pos.z;
           const dir = e.dir;
           const tx = e.pos.x + dir.x * e.cfg.lunge * e.cfg.lungeTime * 0.7, tz = e.pos.z + dir.z * e.cfg.lunge * e.cfg.lungeTime * 0.7;
-          e.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 1.3, e.cfg.windup);
+          e.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 1.3, e.wu);
           e.warn();
         } else if (d > e.cfg.range * 0.7) e.moveToward(p.pos.x, p.pos.z, e.cfg.speed, dt);
         else {
@@ -237,7 +299,7 @@ const AI = {
         break;
       case 'windup':
         e.stop(dt, 14);
-        if (e.stateT >= e.cfg.windup) {
+        if (e.stateT >= e.wu) {
           e.clearTele();
           e.state = 'attack';
           e.stateT = 0;
@@ -260,7 +322,7 @@ const AI = {
         e.stop(dt, 6);
         if (e.stateT > 0.55) {
           e.state = 'chase';
-          e.cooldown = rand(e.cfg.cd[0], e.cfg.cd[1]);
+          e.resetCooldown();
         }
         break;
       case 'hurt':
@@ -281,13 +343,24 @@ const AI = {
       case 'chase':
         e.stop(dt, 12);
         if (e.stateT > 0.7 && e.y <= 0) {
-          const near = d < 4 && e.cooldown <= 0;
-          const tx = near ? p.pos.x : e.pos.x + ((p.pos.x - e.pos.x) / d) * 3;
-          const tz = near ? p.pos.z : e.pos.z + ((p.pos.z - e.pos.z) / d) * 3;
+          const want = d < 4 && e.cooldown <= 0;
+          const near = want && e.claimTurn();
+          let tx = e.pos.x + ((p.pos.x - e.pos.x) / d) * 3;
+          let tz = e.pos.z + ((p.pos.z - e.pos.z) / d) * 3;
+          if (near) {
+            tx = p.pos.x;
+            tz = p.pos.z;
+          } else if (want) {
+            // 차례를 기다리며 옆으로 깡충
+            const a = Math.atan2(e.pos.z - p.pos.z, e.pos.x - p.pos.x) + e.orbitDir * 0.7;
+            tx = p.pos.x + Math.cos(a) * 4.2;
+            tz = p.pos.z + Math.sin(a) * 4.2;
+          }
           e.faceToward(tx, tz);
           e.hopTarget = { x: tx, z: tz, attack: near };
           if (near) {
-            e.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 1.4, 0.55);
+            e.wu = Combat.windup(0.55);
+            e.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 1.4, e.wu);
             e.warn();
             e.state = 'windup';
           } else e.state = 'hop';
@@ -296,7 +369,7 @@ const AI = {
         break;
       case 'windup':
         e.stop(dt);
-        if (e.stateT > 0.55) { e.state = 'hop'; e.stateT = 0; }
+        if (e.stateT > e.wu) { e.state = 'hop'; e.stateT = 0; }
         break;
       case 'hop': {
         if (e.stateT < 0.02) {
@@ -313,7 +386,7 @@ const AI = {
             e.clearTele();
             Combat.hitPlayerIfIn(e.pos, 1.5, e.cfg.damage, { knock: 6 });
             G.fx.dust(e.pos, { count: 6 });
-            e.cooldown = rand(e.cfg.cd[0], e.cfg.cd[1]);
+            e.resetCooldown();
           }
           e.state = 'chase';
           e.stateT = 0;
@@ -336,11 +409,12 @@ const AI = {
         if (d < e.cfg.aggro) e.state = 'chase';
         break;
       case 'chase':
-        if (d < e.cfg.aggro && e.cooldown <= 0) {
+        if (d < e.cfg.aggro && e.cooldown <= 0 && e.claimTurn()) {
           e.state = 'windup';
           e.stateT = 0;
+          e.wu = Combat.windup(e.cfg.windupCharge ?? 0.9);
           e.faceToward(p.pos.x, p.pos.z);
-          e.tele = G.fx.telegraphLine(e.pos, e.dir, e.cfg.chargeSpeed * e.cfg.chargeTime, e.radius * 2 + 0.8, e.cfg.windupCharge ?? 0.9);
+          e.tele = G.fx.telegraphLine(e.pos, e.dir, e.cfg.chargeSpeed * e.cfg.chargeTime, e.radius * 2 + 0.8, e.wu);
           e.warn();
           G.audio.play('charge');
         } else if (d > 5) e.moveToward(p.pos.x, p.pos.z, e.cfg.speed, dt);
@@ -352,7 +426,7 @@ const AI = {
       case 'windup':
         e.stop(dt, 14);
         if (Math.random() < 0.4) G.fx.dust(e.pos, { count: 1, size: 0.6 });
-        if (e.stateT >= (e.cfg.windupCharge ?? 0.9)) {
+        if (e.stateT >= e.wu) {
           e.clearTele();
           e.state = 'charge';
           e.stateT = 0;
@@ -384,7 +458,7 @@ const AI = {
         e.stop(dt, 4);
         if (e.stateT > 0.7) {
           e.state = 'chase';
-          e.cooldown = rand(e.cfg.cd[0], e.cfg.cd[1]);
+          e.resetCooldown();
         }
         break;
       case 'hurt':
@@ -406,17 +480,19 @@ const AI = {
         const R = e.cfg.orbitR ?? 5;
         e.moveToward(p.pos.x + Math.cos(e.orbitA) * R, p.pos.z + Math.sin(e.orbitA) * R, e.cfg.speed, dt, 4);
         e.y = damp(e.y, H + Math.sin(e.time * 2) * 0.3, 3, dt);
-        if (e.cooldown <= 0 && d < e.cfg.aggro) {
+        if (e.cooldown <= 0 && d < e.cfg.aggro && e.claimTurn()) {
           e.stateT = 0;
           if (e.cfg.shoots && Math.random() < 0.6) {
             e.state = 'aim';
+            e.wu = Combat.windup(0.7);
             e.faceToward(p.pos.x, p.pos.z);
-            e.tele = G.fx.telegraphLine(e.pos, e.dir, 14, 0.9, 0.7);
+            e.tele = G.fx.telegraphLine(e.pos, e.dir, 14, 0.9, e.wu);
           } else {
             e.state = 'windup';
+            e.wu = Combat.windup(0.8);
             e.diveX = p.pos.x;
             e.diveZ = p.pos.z;
-            e.tele = G.fx.telegraphCircle({ x: p.pos.x, z: p.pos.z }, 1.4, 0.8);
+            e.tele = G.fx.telegraphCircle({ x: p.pos.x, z: p.pos.z }, 1.4, e.wu);
           }
           e.warn();
         }
@@ -424,19 +500,19 @@ const AI = {
       }
       case 'aim':
         e.stop(dt, 6);
-        if (e.stateT >= 0.7) {
+        if (e.stateT >= e.wu) {
           e.clearTele();
           const dir = e.dir;
           e.world.add(new Shot({ x: e.pos.x, z: e.pos.z, y: e.y, dirX: dir.x, dirZ: dir.z, kind: e.cfg.shot, speed: e.cfg.shotSpeed, damage: e.cfg.damage }));
           G.audio.play('whoosh');
           e.state = 'chase';
-          e.cooldown = rand(e.cfg.cd[0], e.cfg.cd[1]);
+          e.resetCooldown();
         }
         break;
       case 'windup':
         e.stop(dt, 6);
         e.y = damp(e.y, H + 0.8, 6, dt);
-        if (e.stateT >= 0.8) {
+        if (e.stateT >= e.wu) {
           e.clearTele();
           e.state = 'dive';
           e.stateT = 0;
@@ -465,7 +541,7 @@ const AI = {
         e.stop(dt, 3);
         if (e.stateT > 0.9) {
           e.state = 'chase';
-          e.cooldown = rand(e.cfg.cd[0], e.cfg.cd[1]);
+          e.resetCooldown();
         }
         break;
       case 'hurt':
@@ -493,17 +569,18 @@ const AI = {
           e.stop(dt);
           e.faceToward(p.pos.x, p.pos.z);
         }
-        if (e.cooldown <= 0 && d < e.cfg.aggro) {
+        if (e.cooldown <= 0 && d < e.cfg.aggro && e.claimTurn()) {
           e.state = 'windup';
           e.stateT = 0;
+          e.wu = Combat.windup(0.75);
           e.faceToward(p.pos.x, p.pos.z);
-          e.tele = G.fx.telegraphLine(e.pos, e.dir, 15, 0.9, 0.75);
+          e.tele = G.fx.telegraphLine(e.pos, e.dir, 15, 0.9, e.wu);
           e.warn();
         }
         break;
       case 'windup':
         e.stop(dt, 12);
-        if (e.stateT >= 0.75) {
+        if (e.stateT >= e.wu) {
           e.clearTele();
           const dir = e.dir;
           e.world.add(new Shot({ x: e.pos.x, z: e.pos.z, dirX: dir.x, dirZ: dir.z, kind: e.cfg.shot, speed: e.cfg.shotSpeed, damage: e.cfg.damage }));
@@ -516,7 +593,7 @@ const AI = {
         e.stop(dt);
         if (e.stateT > 0.6) {
           e.state = 'chase';
-          e.cooldown = rand(e.cfg.cd[0], e.cfg.cd[1]);
+          e.resetCooldown();
         }
         break;
       case 'hurt':
@@ -533,11 +610,18 @@ export class Boss extends Enemy {
   constructor(o) {
     super({ superArmor: true, knockResist: 0.85, mass: 8, heartChance: 0, ...o, boss: true });
     this.boss = true;
+    this.maxHp = Math.round(this.maxHp * BOSS_HP_SCALE);
+    this.hp = this.maxHp;
     this.title = o.title || '';
     this.mode = 'idle'; // 'follow' | 'idle' | 'custom'
     this.followSpeed = o.speed ?? 3;
     this.rest = o.rest ?? [0.6, 1.2];
     this.started = false;
+    // 체력이 절반 남으면 화가 남 (phase2: false 로 끌 수 있음)
+    this.phase2 = o.phase2 ?? true;
+    this.enraged = false;
+    this.lastPattern = null;
+    this.patternRepeat = 0;
   }
 
   start() {
@@ -558,7 +642,7 @@ export class Boss extends Enemy {
         continue;
       }
       const list = this.patterns();
-      const fn = this.choosePattern ? this.choosePattern(list) : pick(list);
+      const fn = this.choosePattern ? this.choosePattern(list) : this.pickPattern(list);
       try {
         await fn.call(this);
       } catch (e) {
@@ -567,7 +651,44 @@ export class Boss extends Enemy {
       this.clearTele();
       if (!this.alive) break;
       this.mode = 'follow';
-      await wait(rand(this.rest[0], this.rest[1]));
+      // 화가 나면 쉬는 시간이 짧아지고, 가끔은 숨 돌릴 틈만 주고 바로 다음 공격 (도움 모드에서는 안 함)
+      if (this.enraged && !G.assist && Math.random() < 0.25) {
+        await wait(0.15);
+        continue;
+      }
+      await wait(Combat.rest(rand(this.rest[0], this.rest[1]) * (this.enraged ? 0.75 : 1)));
+    }
+  }
+
+  // 무작위로 고르되, 같은 패턴은 두 번까지만 연속 (목록에 같은 패턴을 여러 번 넣으면 더 자주 나옴)
+  pickPattern(list) {
+    let fn = pick(list);
+    if (fn === this.lastPattern && this.patternRepeat >= 1) {
+      const others = list.filter((f) => f !== fn);
+      if (others.length) fn = pick(others);
+    }
+    this.patternRepeat = fn === this.lastPattern ? this.patternRepeat + 1 : 0;
+    this.lastPattern = fn;
+    return fn;
+  }
+
+  // 2페이즈: "화났다!" 연출. 바뀌는 건 쉬는 시간과 이어 치기 (brain 참고)
+  enrage() {
+    this.enraged = true;
+    G.audio.play(this.cry || 'roar');
+    G.rig.shake(0.4);
+    this.squash(0.3, 0.25);
+    G.fx.text({ x: this.pos.x, y: this.y + this.height * 0.9, z: this.pos.z }, '화났다!', { color: '#ff6a4a', size: 1.4, cls: 'word', rise: 2.6 });
+    G.fx.ring(this.pos, { r0: 0.5, r1: 4, life: 0.4, color: 0xff8a6a });
+    G.ui.hud.toast('조심! 보스가 화났어!', 2);
+    this.onEnrage?.();
+  }
+
+  update(dt) {
+    super.update(dt);
+    // 화가 나 있으면 머리 위로 김이 폴폴
+    if (this.enraged && this.alive && !this.stunned && dt > 0 && Math.random() < dt * 3) {
+      G.fx.particle({ x: this.pos.x + rand(-0.4, 0.4), y: this.y + this.height * 0.95, z: this.pos.z, vy: 1.6, size: 0.7, sizeEnd: 0.1, life: 0.6, color: 0xff9a7a, tile: 'glow', additive: true });
     }
   }
 
@@ -593,6 +714,7 @@ export class Boss extends Enemy {
   takeDamage(n, info) {
     const r = super.takeDamage(n, info);
     G.ui.hud.updateBoss(this);
+    if (r !== false && this.phase2 && !this.enraged && this.alive && this.hp > 0 && this.hp <= this.maxHp * 0.5) this.enrage();
     return r;
   }
 
@@ -613,6 +735,7 @@ export class Boss extends Enemy {
 
   async lunge({ windup = 0.65, radius = 1.6, speed = 12, time = 0.2, damage = this.cfg.damage, knock = 8 } = {}) {
     const p = this.player;
+    windup = Combat.windup(windup);
     this.mode = 'face';
     this.faceToward(p.pos.x, p.pos.z);
     const dir = this.dir;
@@ -644,6 +767,7 @@ export class Boss extends Enemy {
 
   async charge({ windup = 0.9, speed = 16, time = 1.0, width = null, damage = this.cfg.damage, stunOnWall = 2.2, onWall = null } = {}) {
     const p = this.player;
+    windup = Combat.windup(windup);
     this.mode = 'face';
     this.faceToward(p.pos.x, p.pos.z);
     const dir = this.dir;
@@ -687,6 +811,7 @@ export class Boss extends Enemy {
 
   async slam({ windup = 1.0, radius = 3.5, at = null, damage = this.cfg.damage + 1, jump = false } = {}) {
     const p = this.player;
+    windup = Combat.windup(windup);
     const target = at || (jump ? { x: p.pos.x, z: p.pos.z } : { x: this.pos.x, z: this.pos.z });
     this.mode = 'face';
     this.faceToward(p.pos.x, p.pos.z);
@@ -720,6 +845,7 @@ export class Boss extends Enemy {
 
   async shoot({ kind = 'fire', count = 1, spread = 0.35, windup = 0.7, speed = 11, damage = this.cfg.damage, from = null } = {}) {
     const p = this.player;
+    windup = Combat.windup(windup);
     this.mode = 'face';
     this.faceToward(p.pos.x, p.pos.z);
     const base = Math.atan2(p.pos.z - this.pos.z, p.pos.x - this.pos.x);
@@ -747,6 +873,7 @@ export class Boss extends Enemy {
   // 플레이어 근처에 포물선으로 던지기 (독침, 바위)
   async lob({ kind = 'poison', count = 1, windup = 0.4, radius = 1.6, damage = this.cfg.damage, hazard = null, from = null, time = 1.0 } = {}) {
     const p = this.player;
+    time = Combat.windup(time); // 날아가는 동안 떨어질 자리가 빨갛게 보이므로, 이 시간이 곧 예고 시간
     this.mode = 'face';
     this.faceToward(p.pos.x, p.pos.z);
     this.state = 'windup';

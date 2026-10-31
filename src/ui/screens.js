@@ -205,6 +205,7 @@ export class Screens {
       G.save.write();
     });
     el('div', 'sgroup', grid, '부모님 메뉴');
+    toggle('🦉 항상 도움 모드', 'assist', () => { G.assist = s.assist; });
     toggle('🔓 모든 과업 열기', 'unlockAll');
     const rrow = el('div', 'srow', grid, '<span>🗑 처음부터 다시</span>');
     const rb = el('button', 'tgl danger', rrow, '지우기');
@@ -268,10 +269,13 @@ export class Screens {
       el('div', 'lvsub', o, '하나를 골라 더 강해지자!');
       const row = el('div', 'picks', o);
       G.audio.jingle('levelup');
+      // 창이 뜬 직후의 터치는 무시 (공격 버튼을 누르던 손가락이 카드를 잘못 고르지 않게)
+      const readyAt = performance.now() + 600;
       PICKS.forEach((p, i) => {
         const c = el('div', 'pick', row, `<div class="pi">${p.icon}</div><div class="pt">${p.title}</div><div class="pd">${p.desc}</div>`);
         c.style.animationDelay = i * 0.08 + 's';
         onTap(c, () => {
+          if (performance.now() < readyAt) return;
           G.audio.play('confirm');
           this.close(o);
           res(p.key);
@@ -400,13 +404,18 @@ export class Screens {
   shop() {
     return new Promise((res) => {
       const o = this.overlay('menu');
-      const box = el('div', 'panel', o);
+      const box = el('div', 'panel wide', o);
       el('div', 'ptitle', box, '🫒 올리브 상점');
       const coins = el('div', 'pinfo', box);
       const list = el('div', 'shoplist', box);
+      // 황금 항아리를 모두 찾았으면 보물 지도는 필요 없음
+      const allFound = () => Array.from({ length: 12 }, (_, i) => G.save.laborState(i + 1).stars?.[1]).every(Boolean);
       const items = [
         { key: 'heart', title: '❤️ 하트 그릇', desc: '하트 1칸 늘리기', max: 3, cost: (n) => 60 + n * 60 },
         { key: 'club', title: '🪵 단단한 몽둥이', desc: '공격력 올리기', max: 3, cost: (n) => 80 + n * 70 },
+        // 아래 둘은 쓰면 줄어들어서 다시 살 수 있음 (max = 한 번에 가질 수 있는 수)
+        { key: 'bread', title: '🍯 꿀빵', desc: '하트가 조금 남으면 알아서 냠냠! (하트 3칸)', max: 3, cost: () => 30, full: '가방이 꽉 찼어요' },
+        { key: 'map', title: '🗺 부엉이 보물 지도', desc: '숨은 황금 항아리 위에 빛기둥이 보여요', max: 1, cost: () => 50, full: '이미 가지고 있어요', done: allFound },
       ];
       const draw = () => {
         coins.innerHTML = `가진 동전: <b>${G.save.data.coins}</b>`;
@@ -414,7 +423,8 @@ export class Screens {
         for (const it of items) {
           const n = G.save.data.shop[it.key];
           const row = el('div', 'shoprow', list, `<div><b>${it.title}</b><br><small>${it.desc} (${n}/${it.max})</small></div>`);
-          if (n >= it.max) el('div', 'sold', row, '다 샀어요');
+          if (it.done?.()) el('div', 'sold', row, '다 찾았어요');
+          else if (n >= it.max) el('div', 'sold', row, it.full || '다 샀어요');
           else {
             const cost = it.cost(n);
             const b = this.button(row, `🪙 ${cost}`, G.save.data.coins >= cost ? 'gold' : 'disabled', () => {

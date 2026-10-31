@@ -25,6 +25,7 @@ export class HUD {
     this.bossFill = el('div', 'fill', bb);
     this.counterEl = el('div', 'counter hidden', this.center);
     const right = el('div', 'hud-right', top);
+    this.breadEl = el('div', 'coins bread hidden', right); // 가진 꿀빵 (상점)
     this.coins = el('div', 'coins', right);
     this.coinImg = el('img', '', this.coins);
     this.coinTxt = el('span', '', this.coins, '0');
@@ -70,7 +71,14 @@ export class HUD {
     this.updateHearts();
     this.updateExp();
     this.updateCoins();
+    this.updateBread();
     this.updateButtons();
+  }
+
+  updateBread() {
+    const n = G.save.data.shop.bread || 0;
+    this.breadEl.classList.toggle('hidden', n <= 0);
+    this.breadEl.textContent = `🍯 ${n}`;
   }
 
   updateHearts() {
@@ -151,6 +159,9 @@ export class HUD {
   }
 
   setBoss(e, name) {
+    // 보스 체력 바가 켜져 있던 시간 = 보스전 시간 (?report 밸런스 기록)
+    if (this.boss && this.boss !== e) G.stage?.bossFightEnd?.(this.boss);
+    if (e && e !== this.boss) G.stage?.bossFightStart?.(e, name || e.title);
     this.boss = e;
     if (!e) {
       this.bossEl.classList.add('hidden');

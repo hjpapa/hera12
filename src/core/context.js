@@ -21,6 +21,7 @@ export const G = {
   rawDt: 0,
   timeScale: 1,
   hitstop: 0,
+  assist: false, // 도움 모드 (스테이지마다 다시 정함)
   paused: false,
   pauseReasons: new Set(),
 

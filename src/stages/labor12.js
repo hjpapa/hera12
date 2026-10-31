@@ -43,10 +43,11 @@ class Cerberus extends Boss {
   async pTail() {
     // 뱀 꼬리 휘두르기 (주변 링)
     this.mode = 'face';
-    this.tele = G.fx.telegraphCircle(this.pos, 4.6, 0.95, 0x8af06a);
+    const wu = Combat.windup(0.95);
+    this.tele = G.fx.telegraphCircle(this.pos, 4.6, wu, 0x8af06a);
     this.warn();
     this.state = 'windup';
-    await wait(0.95);
+    await wait(wu);
     this.clearTele();
     if (this.stopped()) return;
     G.audio.play('hiss');

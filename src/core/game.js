@@ -248,6 +248,8 @@ export class Game {
     G.ui.hud.setObjective(null);
     G.ui.hud.counter(null);
     G.ui.hud.combo(0);
+    Combat.reset();
+    G.assist = !!G.save.data.settings.assist;
     G.rig.pair = null;
     G.rig.clearFocus();
     G.rig.zoomTarget = 1;
@@ -257,6 +259,7 @@ export class Game {
     G.sprites.releaseUnused();
     G.debug.god = G.params.has('god');
     G.debug.auto = G.params.has('auto');
+    G.debug.report = G.params.has('report');
 
     const key = `../stages/${id}.js`;
     if (!STAGE_MODULES[key]) {
@@ -425,6 +428,8 @@ export class Game {
     const p = G.player;
     if (!p || p.pendingLevelUps <= 0 || this.levelBusy) return;
     if (G.paused || G.ui.cutscene || G.ui.dialog.open || G.ui.screens.open || this.loading) return;
+    // 공격 버튼을 톡톡 누르는 중에 카드 창이 뜨면 모르고 카드를 고를 수 있으니, 손이 잠깐 쉴 때 띄운다
+    if (p.state !== 'move' || G.time - p.lastActT < 0.8) return;
     this.levelBusy = true;
     p.pendingLevelUps--;
     G.fx.starPop(p.pos, 1.2);
@@ -445,11 +450,8 @@ export class Game {
     const save = G.save;
     const prev = save.laborState(n);
     const first = !prev.cleared;
-    const p = G.player;
     const elapsed = G.time - (G.stage?.startTime || 0);
-    let challenge = false;
-    if (L.challenge.type === 'noFaint') challenge = p.faints === 0;
-    else if (L.challenge.type === 'fast') challenge = elapsed <= L.challenge.time;
+    let challenge = G.stage?.challengeMet ? G.stage.challengeMet(elapsed) : false;
     if (extraStar !== null) challenge = extraStar;
     const stars = [true, treasure, challenge];
     const merged = stars.map((s, i) => s || (prev.stars || [])[i] || false);
@@ -463,6 +465,12 @@ export class Game {
     }
     if (first) save.data.pendingReport = n;
     save.write();
+    // ?report : 난이도 조정용 기록을 콘솔에 한 줄로 (G.debug.reports 에도 모아 둠)
+    if (G.debug.report && G.stage?.balanceReport) {
+      const r = G.stage.balanceReport(elapsed, stars);
+      (G.debug.reports ||= []).push(r);
+      console.log('[report] ' + JSON.stringify(r));
+    }
     await G.ui.screens.result({ n, stars, labels: ['과업 완료', '숨은 황금 항아리 찾기', L.challenge.label], time: elapsed, stats: st, newCombo: newCombo && !first });
     await this.goHub(first ? { report: n } : {});
   }
