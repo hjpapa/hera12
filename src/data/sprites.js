@@ -128,6 +128,7 @@ export const SPRITES = {
   w_rattle: { paint: 'weapon:rattle', worldH: 0.9, w: 128, h: 256 },
   w_torch: { paint: 'weapon:torch', worldH: 1.0, w: 128, h: 256 },
   w_fist: { paint: 'weapon:fist', worldH: 0.9, w: 128, h: 256 },
+  w_shield: { paint: 'weapon:shield', worldH: 1.15, w: 128, h: 256 }, // 방패병 (가운데 기준)
 };
 
 // UI 아이콘 (public/assets/sprites/icon_<이름>.png 로 교체 가능, 128x128)

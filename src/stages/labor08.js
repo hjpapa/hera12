@@ -3,7 +3,7 @@
 // 폭풍의 트라키아 → 병사들 → 디오메데스 보스 → 날뛰는 암말 4마리를 진정시키기 → 배까지 데려가기
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
-import { Enemy, Boss } from '../game/enemy.js';
+import { Enemy, Boss, ShieldEnemy } from '../game/enemy.js';
 import { Follower } from '../game/npc.js';
 import { rand, TAU, damp } from '../core/util.js';
 
@@ -132,7 +132,7 @@ export default class Labor08 extends Stage {
       if (pre.card && G.save.addCard(pre.card)) await G.ui.screens.card(pre.card);
     }
     this.objective('디오메데스의 마구간으로!', { x: 0, z: -22 });
-    await this.ambush(0, -20, 9, () => [...this.wave(SOLDIER, 3, 0, -24, 4), ...this.wave(THROWER, 2, 0, -28, 2)], { text: '디오메데스의 병사들이다!' });
+    await this.ambush(0, -20, 9, () => [...this.wave(SOLDIER, 2, 0, -24, 4), this.add(new ShieldEnemy({ ...SOLDIER, x: 0, z: -21 })), ...this.wave(THROWER, 2, 0, -28, 2)], { text: '디오메데스의 병사들이다!' });
     this.checkpointAt(0, -30);
     this.objective('앞마당으로!', { x: 0, z: -44 });
     await until(() => G.player.pos.z < -38);

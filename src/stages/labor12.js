@@ -4,7 +4,7 @@
 // → 마지막 "꽉 잡기" (아기 때 뱀, 네메아 사자 때와 같은 힘) → 항복한 케르베로스가 동료가 됨
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
-import { Boss } from '../game/enemy.js';
+import { Boss, ShieldEnemy } from '../game/enemy.js';
 import { Entity } from '../game/entity.js';
 import { NPC, Follower } from '../game/npc.js';
 import { Hazard } from '../game/items.js';
@@ -153,7 +153,7 @@ export default class Labor12 extends Stage {
     this.unfocus();
     this.cutscene(false);
     this.objective('저승 길을 따라가자', { x: 0, z: -24 });
-    await this.ambush(0, -22, 9, () => [...this.wave(BAT, 3, 0, -26, 4), ...this.wave(SKELETON, 3, 0, -24, 3)], { text: '박쥐와 해골 병사들이다!' });
+    await this.ambush(0, -22, 9, () => [...this.wave(BAT, 3, 0, -26, 4), ...this.wave(SKELETON, 2, 0, -24, 3), this.add(new ShieldEnemy({ ...SKELETON, x: 0, z: -21 }))], { text: '박쥐와 해골 병사들이다!' });
     this.checkpointAt(0, -30);
     // 카론의 도움
     this.objective('스틱스 강의 뱃사공에게', this.charon);
