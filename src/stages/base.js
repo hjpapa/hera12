@@ -21,8 +21,9 @@ export class Stage {
     this.skill = null;
     this.treasure = false;
     this.rewardsGiven = false;
-    // 결과 화면 기록 + 도전 판정 (hurts: 맞은 횟수, perfects: 완벽한 회피 횟수)
-    this.stats = { kills: 0, maxCombo: 0, coins: 0, hurts: 0, perfects: 0 };
+    // 결과 화면 기록 + 도전 판정 (hurts: 맞은 횟수, damage: 잃은 하트(반 칸 단위), perfects: 완벽한 회피 횟수)
+    this.stats = { kills: 0, maxCombo: 0, coins: 0, hurts: 0, damage: 0, perfects: 0 };
+    this.bossLog = []; // 보스전 시간 (?report)
     this.preload = [];
   }
 
@@ -342,6 +343,42 @@ export class Stage {
     }
     G.audio.play('magic');
     this.toast('🦉 도움 모드! 적들이 천천히 공격해요', 2.8);
+  }
+
+  // ───────── 밸런스 기록 (?report) ─────────
+  bossFightStart(e, name) {
+    if (this.bossLog.some((b) => b.e === e && b.end === null)) return;
+    this.bossLog.push({ e, name, start: G.time, end: null });
+  }
+
+  bossFightEnd(e) {
+    const b = this.bossLog.find((x) => x.e === e && x.end === null);
+    if (b) b.end = G.time;
+  }
+
+  balanceReport(elapsed, stars) {
+    const p = G.player;
+    const st = this.stats;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    return {
+      n: this.n,
+      title: this.labor?.title,
+      sec: Math.round(elapsed),
+      level: G.save.data.level,
+      atk: r1(p.stats.atk),
+      hearts: p.maxHp / 2,
+      faints: p.faints,
+      hurts: st.hurts,
+      lostHearts: r1(st.damage / 2),
+      kills: st.kills,
+      maxCombo: st.maxCombo,
+      perfects: st.perfects,
+      coins: st.coins,
+      assist: G.assist,
+      stars,
+      // 체력 바가 꺼지지 않고 끝난 보스전은 과업이 끝난 때까지로 셈
+      bosses: this.bossLog.map((b) => ({ name: b.name, sec: Math.round((b.end ?? G.time) - b.start) })),
+    };
   }
 
   async complete(opts = {}) {

@@ -259,6 +259,7 @@ export class Game {
     G.sprites.releaseUnused();
     G.debug.god = G.params.has('god');
     G.debug.auto = G.params.has('auto');
+    G.debug.report = G.params.has('report');
 
     const key = `../stages/${id}.js`;
     if (!STAGE_MODULES[key]) {
@@ -464,6 +465,12 @@ export class Game {
     }
     if (first) save.data.pendingReport = n;
     save.write();
+    // ?report : 난이도 조정용 기록을 콘솔에 한 줄로 (G.debug.reports 에도 모아 둠)
+    if (G.debug.report && G.stage?.balanceReport) {
+      const r = G.stage.balanceReport(elapsed, stars);
+      (G.debug.reports ||= []).push(r);
+      console.log('[report] ' + JSON.stringify(r));
+    }
     await G.ui.screens.result({ n, stars, labels: ['과업 완료', '숨은 황금 항아리 찾기', L.challenge.label], time: elapsed, stats: st, newCombo: newCombo && !first });
     await this.goHub(first ? { report: n } : {});
   }

@@ -159,6 +159,9 @@ export class HUD {
   }
 
   setBoss(e, name) {
+    // 보스 체력 바가 켜져 있던 시간 = 보스전 시간 (?report 밸런스 기록)
+    if (this.boss && this.boss !== e) G.stage?.bossFightEnd?.(this.boss);
+    if (e && e !== this.boss) G.stage?.bossFightStart?.(e, name || e.title);
     this.boss = e;
     if (!e) {
       this.bossEl.classList.add('hidden');

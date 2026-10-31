@@ -531,6 +531,7 @@ export class Player extends Entity {
     this.hp = Math.max(0, this.hp - amount);
     if (G.stage?.stats) {
       G.stage.stats.hurts++;
+      G.stage.stats.damage += amount;
       G.stage.checkChallenge?.();
     }
     this.invuln = 1.0;
