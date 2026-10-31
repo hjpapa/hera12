@@ -101,25 +101,27 @@ class Head extends Enemy {
     this.cool -= dt;
     if (this.cool <= 0 && this.hydra.fighting) {
       const d = this.distP();
-      this.cool = rand(2.2, 4) * (this.gold ? 0.8 : 1);
+      this.cool = Combat.rest(rand(2.2, 4) * (this.gold ? 0.8 : 1));
       if (d < 7.5 && Math.random() < 0.75) {
         // 물기 (빨간 원 예고)
         const tx = p.pos.x, tz = p.pos.z;
-        this.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 1.5, 0.85);
+        const wu = Combat.windup(0.85);
+        this.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 1.5, wu);
         this.warn();
         G.audio.play('hiss');
-        setTimeoutGame(0.85, () => {
+        setTimeoutGame(wu, () => {
           this.clearTele();
           if (this.alive && !this.stunned) this.strike = { x: tx, z: tz, t: 0, dur: 0.5, hit: false };
         });
       } else if (d < 14) {
         // 독 뱉기 → 독 웅덩이
-        const tele = G.fx.telegraphCircle({ x: p.pos.x, z: p.pos.z }, 1.6, 1.0);
+        const fly = Combat.windup(1.0);
+        const tele = G.fx.telegraphCircle({ x: p.pos.x, z: p.pos.z }, 1.6, fly);
         const tx = p.pos.x, tz = p.pos.z;
         G.audio.play('poison');
         this.world.add(new Shot({
           x: this.pos.x, z: this.pos.z, y: 2, dirX: 1, dirZ: 0, kind: 'poison', damage: 1,
-          lob: { tx, tz, time: 1.0, height: 4, onLand: (x, z) => {
+          lob: { tx, tz, time: fly, height: 4, onLand: (x, z) => {
             tele.remove();
             Combat.hitPlayerIfIn({ x, z }, 1.5, 1, { knock: 4 });
             this.world.add(new Hazard({ x, z, radius: 1.6, life: 4, damage: 1, color: 0x8af06a }));

@@ -1,4 +1,5 @@
 // 12과업 정보: 🧒 아이 시나리오, 왕과의 대화(과업 받기 / 보고), 보상, 별 조건
+// challenge(세 번째 별): noFaint 한 번도 안 쓰러지기 · fast 시간 안에(time 초) · combo n 콤보 · perfect 완벽한 회피 n번 · hurtMax n번까지만 맞기
 // 대사는 docs/SCENARIO.md 와 같다.
 
 export const LABORS = [
@@ -55,7 +56,7 @@ export const LABORS = [
       ],
     },
     cards: ['hydra', 'cancer'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'combo', n: 15, label: '15 콤보 만들기' },
   },
   {
     n: 3, stage: 'labor03', title: '케리네이아의 사슴', emoji: '🦌', place: '사계절 숲', sprite: 'deer',
@@ -105,7 +106,7 @@ export const LABORS = [
       ],
     },
     cards: ['centaur'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'perfect', n: 2, label: '완벽한 회피 2번 하기' },
   },
   {
     n: 5, stage: 'labor05', title: '아우게이아스의 외양간', emoji: '🐄', place: '엘리스', sprite: 'cow',
@@ -130,7 +131,7 @@ export const LABORS = [
       ],
     },
     cards: ['alpheus'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'fast', label: '6분 안에 청소하기', time: 360 },
   },
   {
     n: 6, stage: 'labor06', title: '스팀팔로스의 새', emoji: '🐦', place: '스팀팔로스 호수', sprite: 'stym_bird',
@@ -152,7 +153,7 @@ export const LABORS = [
       ],
     },
     cards: ['athena'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'hurtMax', n: 8, label: '8번까지만 맞기' },
   },
   {
     n: 7, stage: 'labor07', title: '크레타의 황소', emoji: '🐂', place: '크레타 섬', sprite: 'bull',
@@ -176,7 +177,7 @@ export const LABORS = [
       ],
     },
     cards: ['taurus'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'combo', n: 20, label: '20 콤보 만들기' },
   },
   {
     n: 8, stage: 'labor08', title: '디오메데스의 암말', emoji: '🐎', place: '트라키아', sprite: 'mare',
@@ -200,7 +201,7 @@ export const LABORS = [
       ],
     },
     cards: ['bucephalus'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'perfect', n: 3, label: '완벽한 회피 3번 하기' },
   },
   {
     n: 9, stage: 'labor09', title: '히폴리테의 허리띠', emoji: '🏹', place: '아마존의 나라', sprite: 'hippolyta',
@@ -223,7 +224,7 @@ export const LABORS = [
       ],
     },
     cards: ['hippolyta'],
-    challenge: { type: 'noFaint', label: '한 번도 쓰러지지 않기' },
+    challenge: { type: 'combo', n: 25, label: '25 콤보 만들기' },
   },
   {
     n: 10, stage: 'labor10', title: '게리온의 소 떼', emoji: '🐮', place: '에리테이아 섬', sprite: 'geryon',

@@ -5,9 +5,28 @@ import { rand } from '../core/util.js';
 
 const v = new THREE.Vector3();
 
+// 도움 모드 (같은 과업에서 두 번 쓰러지면 부엉이가 물어봄, 설정에서 항상 켤 수도 있음)
+// 적의 공격 예고가 길어지고, 공격 사이에 더 오래 쉬고, 적이 조금 더 아파한다.
+const ASSIST = { windup: 1.35, rest: 1.4, dealt: 1.25 };
+
 export const Combat = {
   combo: 0,
   comboT: 0,
+
+  // 공격 예고(빨간 원·선) 시간. 예고 표시와 실제 대기 시간에 같은 값을 써야 한다
+  windup(t) {
+    return G.assist ? t * ASSIST.windup : t;
+  },
+
+  // 공격과 공격 사이 쉬는 시간
+  rest(t) {
+    return G.assist ? t * ASSIST.rest : t;
+  },
+
+  reset() {
+    this.combo = 0;
+    this.comboT = 0;
+  },
 
   // info: { amount, from(Vector3|{x,z}), knock, big, canCrit, type, poison, silent, hitstop }
   hitEnemy(e, info) {
@@ -39,6 +58,7 @@ export const Combat = {
     }
 
     let amount = info.amount;
+    if (G.assist && e.team === 'enemy') amount *= ASSIST.dealt;
     const crit = info.canCrit && Math.random() < 0.12;
     if (crit) amount *= 1.6;
     amount *= rand(0.92, 1.08);
@@ -75,7 +95,10 @@ export const Combat = {
     this.combo++;
     this.comboT = 2.5;
     const st = G.stage?.stats;
-    if (st && this.combo > st.maxCombo) st.maxCombo = this.combo;
+    if (st && this.combo > st.maxCombo) {
+      st.maxCombo = this.combo;
+      G.stage.checkChallenge?.();
+    }
     G.ui?.hud?.combo(this.combo);
   },
 

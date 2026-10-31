@@ -25,6 +25,7 @@ function fresh() {
       vibrate: true,
       quality: 'auto',
       unlockAll: false,
+      assist: false, // 항상 도움 모드 (적이 천천히 공격)
       childName: '우리 아이',
     },
   };

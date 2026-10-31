@@ -205,6 +205,7 @@ export class Screens {
       G.save.write();
     });
     el('div', 'sgroup', grid, '부모님 메뉴');
+    toggle('🦉 항상 도움 모드', 'assist', () => { G.assist = s.assist; });
     toggle('🔓 모든 과업 열기', 'unlockAll');
     const rrow = el('div', 'srow', grid, '<span>🗑 처음부터 다시</span>');
     const rb = el('button', 'tgl danger', rrow, '지우기');
@@ -268,10 +269,13 @@ export class Screens {
       el('div', 'lvsub', o, '하나를 골라 더 강해지자!');
       const row = el('div', 'picks', o);
       G.audio.jingle('levelup');
+      // 창이 뜬 직후의 터치는 무시 (공격 버튼을 누르던 손가락이 카드를 잘못 고르지 않게)
+      const readyAt = performance.now() + 600;
       PICKS.forEach((p, i) => {
         const c = el('div', 'pick', row, `<div class="pi">${p.icon}</div><div class="pt">${p.title}</div><div class="pd">${p.desc}</div>`);
         c.style.animationDelay = i * 0.08 + 's';
         onTap(c, () => {
+          if (performance.now() < readyAt) return;
           G.audio.play('confirm');
           this.close(o);
           res(p.key);

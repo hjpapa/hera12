@@ -20,7 +20,8 @@ export class Stage {
     this.skill = null;
     this.treasure = false;
     this.rewardsGiven = false;
-    this.stats = { kills: 0, maxCombo: 0, coins: 0 };
+    // 결과 화면 기록 + 도전 판정 (hurts: 맞은 횟수, perfects: 완벽한 회피 횟수)
+    this.stats = { kills: 0, maxCombo: 0, coins: 0, hurts: 0, perfects: 0 };
     this.preload = [];
   }
 
@@ -262,6 +263,63 @@ export class Stage {
     G.save.write();
   }
 
+  // ───────── 도전 (과업별 세 번째 별) ─────────
+  // labors.js 의 challenge: { type, label, n | time }
+  challengeMet(elapsed = G.time - (this.startTime || 0)) {
+    const c = this.labor?.challenge;
+    if (!c) return false;
+    const st = this.stats;
+    switch (c.type) {
+      case 'noFaint': return (G.player?.faints || 0) === 0;
+      case 'fast': return elapsed <= c.time;
+      case 'combo': return st.maxCombo >= c.n;
+      case 'perfect': return st.perfects >= c.n;
+      case 'hurtMax': return st.hurts <= c.n;
+    }
+    return false;
+  }
+
+  // 모으는 도전(콤보·완벽한 회피)은 이룬 순간 바로 칭찬, "n번까지만 맞기"는 마지막 한 번 남았을 때 살짝 알려 줌
+  checkChallenge() {
+    const c = this.labor?.challenge;
+    if (!c || this.challengeShown) return;
+    if (c.type === 'hurtMax') {
+      if (this.stats.hurts !== c.n) return;
+      this.challengeShown = true;
+      this.toast('조심조심! 더 맞으면 도전은 다음 기회에', 2.6);
+      return;
+    }
+    if (c.type !== 'combo' && c.type !== 'perfect') return;
+    if (!this.challengeMet()) return;
+    this.challengeShown = true;
+    this.toast(`★ 도전 성공! ${c.label}`, 2.6);
+    G.audio.jingle('star');
+    G.audio.speak('도전 성공! ' + c.label, { pitch: 1.35 });
+  }
+
+  // ───────── 도움 모드 ─────────
+  // 같은 과업에서 두 번 쓰러지면 부엉이가 한 번 물어본다
+  async onRespawn(p) {
+    if (G.assist || this.assistAsked || p.faints < 2 || !this.labor) return;
+    this.assistAsked = true;
+    await until(() => !G.ui.dialog.open && !G.ui.cutscene && !G.ui.screens.open && !G.game.loading);
+    if (G.stage !== this || G.assist) return;
+    const i = await this.choose('glau', '부엉! 조금 어렵지? 내가 도와줄까? 적들이 천천히 공격하게 해 줄게!', ['도와줘!', '혼자 해 볼래!']);
+    if (i === 0) this.setAssist(true);
+  }
+
+  setAssist(on) {
+    G.assist = on;
+    if (!on) return;
+    const p = G.player;
+    if (p) {
+      G.fx.starPop(p.pos, 0.9);
+      G.fx.burst(p.pos, { count: 10, color: [0x8fe0ff, 0xffffff], tile: 'star', size: 0.45, speed: 4, gravity: -1 });
+    }
+    G.audio.play('magic');
+    this.toast('🦉 도움 모드! 적들이 천천히 공격해요', 2.8);
+  }
+
   async complete(opts = {}) {
     G.guide.set(null);
     G.ui.hud.setObjective(null);
@@ -274,5 +332,11 @@ export class Stage {
     const L = this.labor;
     if (!L) return;
     await this.banner(`과업 ${L.n} · ${L.title}`, L.place, 2.4);
+    const c = L.challenge;
+    if (c) {
+      const done = G.save.laborState(L.n).stars?.[2];
+      this.toast(`${done ? '★' : '☆'} 도전: ${c.label}`, 3.2);
+      if (!done) G.audio.speak('도전! ' + c.label, { pitch: 1.2 });
+    }
   }
 }

@@ -4,6 +4,7 @@
 import { G } from '../core/context.js';
 import { Stage, wait, until, waitReal } from './base.js';
 import { Boss } from '../game/enemy.js';
+import { Combat } from '../game/combat.js';
 import { Arrow, Breakable } from '../game/items.js';
 import { rand } from '../core/util.js';
 
@@ -70,10 +71,11 @@ class LionBoss extends Boss {
 
   async pRoar() {
     this.mode = 'face';
-    this.tele = G.fx.telegraphCircle(this.pos, 5, 0.9);
+    const wu = Combat.windup(0.9);
+    this.tele = G.fx.telegraphCircle(this.pos, 5, wu);
     this.warn();
     this.state = 'windup';
-    await wait(0.9);
+    await wait(wu);
     this.clearTele();
     if (this.stopped()) return;
     G.audio.play('roar');

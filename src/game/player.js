@@ -6,6 +6,7 @@ import { GEO } from '../render/billboard.js';
 import { Combat } from './combat.js';
 import { computeStats, expToNext } from './stats.js';
 import { Arrow } from './items.js';
+import { wait } from '../core/script.js';
 import { damp, dampAngle, angleDiff, clamp, easeOutCubic, TAU, rand } from '../core/util.js';
 
 // 손 위치 기본값 (앞모습 그림 기준, 0~1 비율: 왼쪽→오른쪽, 아래→위). 그림별 값은 sprites.js 의 hand
@@ -63,6 +64,7 @@ export class Player extends Entity {
     // 필살기 게이지 (스테이지가 바뀌어도 이어짐)
     this.hero = G.save.data.hero || 0;
     this.lastPerfect = -9;
+    this.lastActT = -9; // 마지막으로 공격·구르기·스킬을 쓴 시간 (레벨업 창 띄우는 때 고르기)
     this.visual.snapFlip();
     G.player = this;
   }
@@ -378,6 +380,7 @@ export class Player extends Entity {
     this.comboStep = step;
     this.hitDone = false;
     this.attackBuffer = 0;
+    this.lastActT = G.time;
     // 자동 조준
     const t = this.world.nearest(this.pos, { maxDist: 4.6, filter: (e) => e.hittable && !e.flying && e.y < 1.5 });
     const prop = t ? null : this.world.nearest(this.pos, { maxDist: 3.2, team: 'prop', filter: (e) => e.hittable });
@@ -448,6 +451,7 @@ export class Player extends Entity {
     this.state = 'dash';
     this.stateT = 0;
     this.attackBuffer = 0;
+    this.lastActT = G.time;
     const sp = this.stats.dashSpeed;
     this.vel.set(dx * sp, 0, dz * sp);
     this.invuln = Math.max(this.invuln, this.stats.dashTime + 0.08);
@@ -466,6 +470,7 @@ export class Player extends Entity {
     if ((this.cd[s] || 0) > 0) return;
     this.cd[s] = SKILL_CD[s];
     this.calmT = 0;
+    this.lastActT = G.time;
     if (s === 'bow') {
       const target = this.world.nearest(this.pos, { maxDist: 18, filter: (e) => e.hittable && !e.hidden });
       let dx, dz;
@@ -513,16 +518,21 @@ export class Player extends Entity {
     G.ui.hud.updateButtons();
   }
 
-  hurt(amount, from, { knock = 7, ignoreInvuln = false } = {}) {
+  // dodgeable=false: 독 웅덩이처럼 계속 닿아 있는 피해 (구르면 안 맞지만 "완벽한 회피"는 아님)
+  hurt(amount, from, { knock = 7, ignoreInvuln = false, dodgeable = true } = {}) {
     if (!this.alive || this.state === 'faint' || G.debug.god) return false;
     if (!ignoreInvuln && this.state === 'dash' && !this.locked) {
-      this.perfectDodge();
+      if (dodgeable) this.perfectDodge();
       return false;
     }
     if (!ignoreInvuln && (this.invuln > 0 || this.state === 'dash' || this.state === 'special')) return false;
     if (this.locked && !ignoreInvuln) return false;
     amount *= 1 - this.stats.defense;
     this.hp = Math.max(0, this.hp - amount);
+    if (G.stage?.stats) {
+      G.stage.stats.hurts++;
+      G.stage.checkChallenge?.();
+    }
     this.invuln = 1.0;
     this.calmT = 0;
     this.flash(0.15, 0xff5a5a);
@@ -552,6 +562,8 @@ export class Player extends Entity {
   perfectDodge() {
     if (G.time - this.lastPerfect < 0.9) return;
     this.lastPerfect = G.time;
+    if (G.stage?.stats) G.stage.stats.perfects++;
+    G.stage?.checkChallenge?.();
     G.game.slowmo(0.35, 0.55);
     G.audio.play('magic');
     G.fx.text({ x: this.pos.x, y: this.y + 0.6, z: this.pos.z }, '완벽한 회피!', { color: '#8fe0ff', size: 1.2, cls: 'word', rise: 2.2 });
@@ -569,6 +581,7 @@ export class Player extends Entity {
     this.noGravity = true;
     this.vy = 0;
     this.attackBuffer = 0;
+    this.lastActT = G.time;
     this.invuln = Math.max(this.invuln, 1.0);
     this.hero = 0;
     G.save.data.hero = 0;
@@ -630,7 +643,8 @@ export class Player extends Entity {
     G.audio.jingle('fail');
     G.ui.hud.toast('앗! 잠깐 쉬자… 다시 일어나!', 2.0);
     this.visual.roll = 0;
-    setTimeout(() => this.respawn(), 1600);
+    // 게임 시간으로 기다림: 일시정지 중엔 멈추고, 스테이지가 바뀌면 함께 취소된다
+    wait(1.6).then(() => this.respawn());
   }
 
   respawn() {
@@ -646,6 +660,7 @@ export class Player extends Entity {
     G.ui.hud.updateHearts();
     G.fx.starPop(this.pos, 0.8);
     G.audio.play('magic');
+    G.stage?.onRespawn?.(this);
   }
 
   gainExp(n) {

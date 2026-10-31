@@ -47,10 +47,11 @@ export class FlyBoss extends Boss {
     const p = this.player;
     this.mode = 'face';
     const tx = p.pos.x, tz = p.pos.z;
-    this.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 2, 0.9);
+    const wu = Combat.windup(0.9);
+    this.tele = G.fx.telegraphCircle({ x: tx, z: tz }, 2, wu);
     this.warn();
     G.audio.play('bird');
-    await wait(0.9);
+    await wait(wu);
     this.clearTele();
     if (this.stopped()) return;
     this.mode = 'custom';
