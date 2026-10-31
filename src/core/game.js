@@ -306,7 +306,7 @@ export class Game {
     G.save.write();
     await G.ui.screens.fade(false, 0.4);
     stage.startTime = G.time;
-    stage.run().catch((e) => console.error('[stage]', e));
+    stage.run().catch((e) => this.stageError(stage, e));
   }
 
   // 처음 보이는 순간 버벅이지 않도록 그림을 GPU에 올리고 셰이더를 미리 만든다
@@ -333,6 +333,21 @@ export class Game {
       try { r.compile(G.scene, G.camera); } catch (e) { /* 무시 */ }
     }
     this.perf.settle = 2.5;
+  }
+
+  // 과업 진행 코드에 문제가 생기면 화면이 그대로 멈추지 않게 "다시 하기 / 마을로"를 고르게 한다
+  async stageError(stage, e) {
+    console.error('[stage]', e);
+    if (G.stage !== stage || this.loading) return; // 이미 다른 곳으로 감
+    G.ui.dialog.hide();
+    G.ui.setCutscene(false);
+    const again = await G.ui.screens.stageError();
+    if (G.stage !== stage || this.loading) return;
+    if (!again) return this.goHub();
+    // 보스 앞까지 왔던 과업이면 보스 앞에서부터
+    const n = stage.n;
+    if (n && LABORS[n - 1]) return this.goLabor(n, G.save.data.resume?.n === n ? { resume: true } : {});
+    return this.loadStage(stage.id, stage.params);
   }
 
   goHub(params = {}) {

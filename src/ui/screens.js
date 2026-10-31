@@ -267,6 +267,20 @@ export class Screens {
     this.button(box, '닫기', 'gold', () => this.close(o));
   }
 
+  // ───────── 진행이 멈췄을 때 (과업 진행 코드 오류) ─────────
+  stageError() {
+    return new Promise((res) => {
+      const o = this.overlay('menu confirm');
+      const box = el('div', 'panel', o);
+      el('div', 'ptitle', box, '앗, 길을 잃었어!');
+      el('div', 'cmsg', box, '다시 해 볼까?<br><small>보스 앞까지 왔으면 거기서부터 다시 해요.</small>');
+      G.audio.speak('앗, 길을 잃었어! 다시 해 볼까?', { pitch: 1.2 });
+      const row = el('div', 'crow', box);
+      this.button(row, '다시 하기', 'gold', () => { this.close(o); res(true); });
+      this.button(row, '마을로', '', () => { this.close(o); res(false); });
+    });
+  }
+
   // ───────── 놀이 시간 알림 ─────────
   // true: 조금 더 하기, false: 오늘은 그만 (쉬는 화면)
   async playTimeUp(min) {
