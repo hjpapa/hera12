@@ -25,6 +25,7 @@ export class HUD {
     this.bossFill = el('div', 'fill', bb);
     this.counterEl = el('div', 'counter hidden', this.center);
     const right = el('div', 'hud-right', top);
+    this.breadEl = el('div', 'coins bread hidden', right); // 가진 꿀빵 (상점)
     this.coins = el('div', 'coins', right);
     this.coinImg = el('img', '', this.coins);
     this.coinTxt = el('span', '', this.coins, '0');
@@ -70,7 +71,14 @@ export class HUD {
     this.updateHearts();
     this.updateExp();
     this.updateCoins();
+    this.updateBread();
     this.updateButtons();
+  }
+
+  updateBread() {
+    const n = G.save.data.shop.bread || 0;
+    this.breadEl.classList.toggle('hidden', n <= 0);
+    this.breadEl.textContent = `🍯 ${n}`;
   }
 
   updateHearts() {

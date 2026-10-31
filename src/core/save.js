@@ -14,7 +14,7 @@ function fresh() {
     exp: 0,
     picks: { atk: 0, hp: 0, spd: 0 },
     coins: 0,
-    shop: { heart: 0, club: 0, bread: 0 },
+    shop: { heart: 0, club: 0, bread: 0, map: 0 }, // bread: 가진 꿀빵 수, map: 가진 보물 지도 수
     skills: [], // 'bow' | 'rattle' | 'spear'
     gear: [], // 'lion','deer','tusk','heart5','horse','belt','heart10','apple','cerberus'
     cards: [],

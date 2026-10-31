@@ -555,6 +555,7 @@ export class Player extends Entity {
     G.fx.burst(this.pos, { count: 6, color: 0xff7a7a, tile: 'heart', size: 0.4, speed: 4, life: 0.6, additive: false });
     if (this.hp <= 0) this.faint();
     else if (this.hp <= 3 && this.stats.apple && !this.appleUsed) this.eatApple();
+    else if (this.hp <= 3 && G.save.data.shop.bread > 0) this.eatBread();
     return true;
   }
 
@@ -621,6 +622,16 @@ export class Player extends Entity {
     G.fx.text(this.pos, '황금사과!', { color: '#ffd84a', size: 1.2, cls: 'word' });
     G.audio.jingle('reward');
     G.fx.burst(this.pos, { count: 16, color: 0xffd84a, tile: 'star', speed: 5 });
+  }
+
+  // 꿀빵 (상점에서 산 것): 하트가 조금 남으면 알아서 먹음
+  eatBread() {
+    G.save.data.shop.bread--;
+    G.save.write();
+    this.heal(6);
+    G.fx.text(this.pos, '꿀빵 냠냠!', { color: '#ffc84a', size: 1.1, cls: 'word' });
+    G.fx.burst(this.pos, { count: 8, color: [0xffc84a, 0xfff0a0], tile: 'glow', size: 0.4, speed: 3, gravity: -2, life: 0.7 });
+    G.ui.hud.updateBread();
   }
 
   heal(n, quiet = false) {

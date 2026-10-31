@@ -1,4 +1,5 @@
 // 스테이지 기본: 스크립트에서 쓰는 도우미 모음 (대화 · 목표 · 적 소환 · 보스 · 보상 · 완료)
+import * as THREE from 'three';
 import { G } from '../core/context.js';
 import { wait, until, waitReal } from '../core/script.js';
 import { Builder } from '../render/props.js';
@@ -203,13 +204,35 @@ export class Stage {
 
   // 숨은 황금 항아리 = 별 하나
   treasurePot(x, z) {
-    return this.world.add(new Pot({
+    const pot = this.world.add(new Pot({
       x, z, gold: true,
       onBreak: () => {
         this.treasure = true;
         this.toast('★ 숨은 황금 항아리를 찾았다!', 2.6);
+        if (this.mapBeam) {
+          // 보물 지도는 항아리를 찾았을 때 다 쓴 것으로
+          this.mapBeam.removeFromParent();
+          this.mapBeam.geometry.dispose();
+          this.mapBeam.material.dispose();
+          this.mapBeam = null;
+          G.save.data.shop.map = Math.max(0, (G.save.data.shop.map || 0) - 1);
+          G.save.write();
+        }
       },
     }));
+    // 부엉이 보물 지도(상점)가 있고 아직 못 찾은 항아리면 위에 황금 빛기둥
+    if (G.save.data.shop.map > 0 && this.n && !G.save.laborState(this.n).stars?.[1]) {
+      const mat = new THREE.MeshBasicMaterial({ color: 0xffb84a, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.8, 24, 12, 1, true), mat);
+      beam.position.set(x, 12, z);
+      beam.userData.dynamic = true;
+      this.world.root.add(beam);
+      this.world.onUpdate(() => {
+        if (this.mapBeam) mat.opacity = 0.3 + Math.sin(G.time * 4) * 0.12;
+      });
+      this.mapBeam = beam;
+    }
+    return pot;
   }
 
   // ───────── 보스 ─────────
@@ -339,5 +362,6 @@ export class Stage {
       this.toast(`${done ? '★' : '☆'} 도전: ${c.label}`, 3.2);
       if (!done) G.audio.speak('도전! ' + c.label, { pitch: 1.2 });
     }
+    if (this.mapBeam) wait(3.4).then(() => this.mapBeam && this.toast('🗺 보물 지도: 황금 빛기둥 아래에 항아리가 있어!', 3));
   }
 }
