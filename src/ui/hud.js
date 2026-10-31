@@ -208,6 +208,9 @@ export class HUD {
 
   toast(text, dur = 2.2) {
     this.toastEl.textContent = text;
+    // 목표·보스 체력·카운터 아래에 띄움 (위에 겹쳐 카운터 글자를 가리지 않게)
+    const r = this.center.getBoundingClientRect();
+    this.toastEl.style.top = r.height > 0 ? Math.max(r.bottom + 10, innerHeight * 0.24) + 'px' : '';
     this.toastEl.classList.remove('hidden');
     this.toastEl.classList.remove('pop');
     void this.toastEl.offsetWidth;

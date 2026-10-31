@@ -67,6 +67,19 @@ export class Screens {
     await waitReal(dur);
   }
 
+  // 창(스크롤됨) + 오른쪽 위에 항상 보이는 ✕ 닫기. 창이 길어 아래 "닫기"가 화면 밖에 있어도 닫을 수 있게
+  panel(o, cls, onClose) {
+    const wrap = el('div', 'pwrap', o);
+    const box = el('div', cls, wrap);
+    const x = el('button', 'pclose', wrap, '✕');
+    x.setAttribute('aria-label', '닫기');
+    onTap(x, () => {
+      G.audio.play('confirm');
+      onClose();
+    });
+    return box;
+  }
+
   button(parent, html, cls = '', fn = null) {
     const b = el('button', 'btn-ui ' + cls, parent, html);
     if (fn) onTap(b, () => {
@@ -122,7 +135,7 @@ export class Screens {
   pauseMenu() {
     if (this.open) return;
     const o = this.overlay('menu');
-    const box = el('div', 'panel', o);
+    const box = this.panel(o, 'panel', () => this.close(o));
     el('div', 'ptitle', box, '잠깐 쉬어요');
     const stars = G.save.starCount();
     el('div', 'pinfo', box, `★ ${stars} / 36 &nbsp; · &nbsp; 과업 ${G.save.clearedCount()} / 12`);
@@ -150,7 +163,7 @@ export class Screens {
   // ───────── 설정 ─────────
   settings() {
     const o = this.overlay('menu');
-    const box = el('div', 'panel wide', o);
+    const box = this.panel(o, 'panel wide', () => this.close(o));
     el('div', 'ptitle', box, '설정');
     const s = G.save.data.settings;
     const grid = el('div', 'settings', box);
@@ -234,7 +247,7 @@ export class Screens {
   laborMap({ travel = true } = {}) {
     return new Promise((res) => {
       const o = this.overlay('menu map');
-      const box = el('div', 'panel map', o);
+      const box = this.panel(o, 'panel map', () => { this.close(o); res(null); });
       el('div', 'ptitle', box, '🗺 열두 과업 지도');
       const grid = el('div', 'mapgrid', box);
       for (const L of LABORS) {
@@ -383,7 +396,7 @@ export class Screens {
   // ───────── 카드 도감 ─────────
   cardBook() {
     const o = this.overlay('menu');
-    const box = el('div', 'panel map', o);
+    const box = this.panel(o, 'panel map', () => this.close(o));
     const got = G.save.data.cards;
     el('div', 'ptitle', box, `🃏 카드 도감 (${got.length} / ${Object.keys(CARDS).length})`);
     const grid = el('div', 'cardgrid', box);
@@ -404,7 +417,7 @@ export class Screens {
   shop() {
     return new Promise((res) => {
       const o = this.overlay('menu');
-      const box = el('div', 'panel wide', o);
+      const box = this.panel(o, 'panel wide', () => { this.close(o); res(); });
       el('div', 'ptitle', box, '🫒 올리브 상점');
       const coins = el('div', 'pinfo', box);
       const list = el('div', 'shoplist', box);
