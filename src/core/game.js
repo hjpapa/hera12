@@ -11,6 +11,7 @@ import { FX } from '../render/fx.js';
 import { SPRITE_UNIFORMS } from '../render/billboard.js';
 import { skyTexture } from '../render/props.js';
 import { LABORS } from '../data/labors.js';
+import { PLAY_LOG_MAX } from './save.js';
 
 const STAGE_MODULES = import.meta.glob('../stages/*.js');
 
@@ -464,13 +465,18 @@ export class Game {
       if (save.addCard(c)) await G.ui.screens.card(c);
     }
     if (first) save.data.pendingReport = n;
-    save.write();
-    // ?report : 난이도 조정용 기록을 콘솔에 한 줄로 (G.debug.reports 에도 모아 둠)
-    if (G.debug.report && G.stage?.balanceReport) {
-      const r = G.stage.balanceReport(elapsed, stars);
-      (G.debug.reports ||= []).push(r);
-      console.log('[report] ' + JSON.stringify(r));
+    // 난이도 조정용 기록: 부모님 메뉴 "플레이 기록"에 남김. ?report 면 콘솔에도 한 줄 (G.debug.reports 에도 모아 둠)
+    if (G.stage?.balanceReport) {
+      const r = { at: Date.now(), ...G.stage.balanceReport(elapsed, stars) };
+      const log = (save.data.playLog ||= []);
+      log.push(r);
+      if (log.length > PLAY_LOG_MAX) log.splice(0, log.length - PLAY_LOG_MAX);
+      if (G.debug.report) {
+        (G.debug.reports ||= []).push(r);
+        console.log('[report] ' + JSON.stringify(r));
+      }
     }
+    save.write();
     await G.ui.screens.result({ n, stars, labels: ['과업 완료', '숨은 황금 항아리 찾기', L.challenge.label], time: elapsed, stats: st, newCombo: newCombo && !first });
     await this.goHub(first ? { report: n } : {});
   }
