@@ -48,7 +48,7 @@ export class Player extends Entity {
     this.speedMul = 1;
     this.pendingLevelUps = 0;
     this.appleUsed = false;
-    this.weaponRest = 0.5;
+    this.weaponRest = 0.62; // 옆모습에서 어깨에 멘 각도
     this.weaponAngle = 0.5;
     this.showBowT = 0;
     this.visual.addPart('weapon', 'w_club', { x: 0.44, y: 0.63, z: 0.04 });
@@ -702,10 +702,12 @@ export class Player extends Entity {
     const c = COMBO[this.comboStep];
     let roll = 0, lift = 0;
     const moving = Math.hypot(this.vel.x, this.vel.z) > 0.6;
-    let target = this.weaponRest;
     v.sway = 0;
     this.idleT = moving ? 0 : this.idleT + dt;
     this.updateView(dt, moving);
+    // 옆모습은 몽둥이를 어깨에 메고, 앞·뒷모습은 바깥쪽으로 세워 얼굴·몸에 가리지 않게
+    const shoulder = this.view === 'side';
+    let target = shoulder ? this.weaponRest : -0.3;
     switch (this.state) {
       case 'move':
         if (this.walkAnim(v)) {
@@ -713,7 +715,7 @@ export class Player extends Entity {
           roll = v.roll;
           // 가는 쪽으로 몸을 살짝 기울임
           if (this.view !== 'back') roll -= 0.05;
-          target = 0.35 + Math.sin(this.stepPhase) * 0.18;
+          target = shoulder ? 0.6 + Math.sin(this.stepPhase) * 0.08 : -0.22 + Math.sin(this.stepPhase) * 0.12;
           // 발이 땅에 닿을 때마다 작은 먼지
           const stepN = Math.floor(this.stepPhase / Math.PI);
           if (stepN !== this.lastStep) {
