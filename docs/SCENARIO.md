@@ -709,7 +709,7 @@
 > 케르베로스: 멍! 멍멍! (세 머리가 동시에 혀를 내밀며 인사)
 
 > 🎬 **게임 장면 보강 · 테세우스 구하기** (스틱스 강을 건넌 뒤) — "잊어버림의 의자"에 붙어 버린 아테네의 영웅 테세우스를 **연타로 떼어 내 구출** (아폴로도로스 2.5.12) · 🃏 **영웅 테세우스**
-> 📖 **뒷이야기 · 하얀 포플러 잎** — 저승에서 나온 헤라클레스가 포플러 가지로 관을 썼더니 잎 뒷면이 하얗게 되었다는 전설 (파우사니아스 5.14.2 + 후대 전승) · 🃏 **하얀 포플러**
+> 📖 **뒷이야기 · 하얀 포플러 잎** — 풀려난 테세우스가 나중에 힘든 헤라클레스를 아테네로 데려가 은혜를 갚음 (에우리피데스 「헤라클레스」) · 저승에서 나온 헤라클레스가 포플러 가지로 관을 썼더니 잎 뒷면이 하얗게 되었다는 전설 (파우사니아스 5.14.2 + 후대 전승) · 🃏 **하얀 포플러**
 
 🏆 **보상**: 영웅의 별 ⑫ · 신화 카드 **케르베로스** · 마을에서 케르베로스 인형 장식
 
@@ -811,5 +811,5 @@
 - 헤시오네와 바다 괴물: [Wikipedia: Hesione](https://en.wikipedia.org/wiki/Hesione), [Perseus 2.5.9–2.6.4](https://cts.perseids.org/read/greekLit/tlg0548/tlg001/perseus-eng2/2.5.9-2.6.4)
 - 카쿠스: [Wikipedia: Cacus](https://en.wikipedia.org/wiki/Cacus), [Theoi: Kakos](https://www.theoi.com/Gigante/GiganteKakos.html)
 - 안타이오스: [Greek Mythology: Antaeus](https://greekmythology.com/Myths/Gigantes/Antaeus/antaeus.html), [TheCollector](https://www.thecollector.com/golden-apples-hesperides-heracles-eleventh-labor/)
-- 테세우스와 잊어버림의 의자: [World History: Cerberus](https://www.worldhistory.org/cerberus/), [Pirithous (BYU)](https://ogcma.byu.edu/Pirithous1.000_Reid.htm)
+- 테세우스와 잊어버림의 의자: [World History: Cerberus](https://www.worldhistory.org/cerberus/), [Pirithous (BYU)](https://ogcma.byu.edu/Pirithous1.000_Reid.htm), 은혜 갚기: [Wikipedia: Herakles (Euripides)](https://en.wikipedia.org/wiki/Herakles_(Euripides))
 - 하얀 포플러: 파우사니아스 5.14.2 ([Perseus](https://cts.perseids.org/read/greekLit/tlg0525/tlg001/perseus-eng2/5.14.1-5.15.1)), [Wikipedia: Leuce](https://en.wikipedia.org/wiki/Leuce_(mythology))
