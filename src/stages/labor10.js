@@ -9,7 +9,7 @@ import { Boss } from '../game/enemy.js';
 import { Breakable, Pickup, Shot, Arrow } from '../game/items.js';
 import { Follower, NPC } from '../game/npc.js';
 import { Combat } from '../game/combat.js';
-import { rand, TAU } from '../core/util.js';
+import { rand, TAU, clamp, damp } from '../core/util.js';
 
 class Orthrus extends Boss {
   constructor(o) {
@@ -245,7 +245,8 @@ export default class Labor10 extends Stage {
       ['geryon', '거기 서라!!! 내 소를 돌려놔라!!!'],
       ['hercules', '뒤쫓아 왔구나! 좋아, 덤벼라!'],
     ]);
-    this.cows.forEach((c) => { c.leader = null; c.goTo(c.pos.x + rand(-2, 2), -84 + rand(-2, 2), 8); });
+    // 소들은 선착장 쪽으로 피신 (섬 가장자리 밖 바다에 서지 않게 가운데로 모음)
+    this.cows.forEach((c) => { c.leader = null; c.goTo(clamp(c.pos.x + rand(-2, 2), -6, 6), -84 + rand(-2, 2), 8); });
     this.unfocus();
     this.cutscene(false);
     ger.active = true;
@@ -336,6 +337,8 @@ export default class Labor10 extends Stage {
       // 앞으로 자동 진행
       p.pos.z -= 6.5 * G.dt;
       p.vel.z = 0;
+      // 섬에 닿기 직전에는 잔이 선착장(가운데)으로 미끄러져 들어감
+      if (p.pos.z < z1 + 8) p.pos.x = damp(p.pos.x, 0, 4, G.dt);
       cup.position.set(p.pos.x, -0.4 + Math.sin(G.time * 3) * 0.08, p.pos.z);
       cup.rotation.z = Math.sin(G.time * 2) * 0.05;
       // 근처 동전 줍기
@@ -350,6 +353,9 @@ export default class Labor10 extends Stage {
     });
     this.riding = false;
     W.areas = W.areas.filter((a) => a !== lane);
+    // 바닷길이 사라지면 선착장은 가운데 좁은 길뿐: 옆으로 붙은 채 내리면 바다 위에 갇혀 못 움직인다
+    p.pos.x = clamp(p.pos.x, -2, 2);
+    p.lastSafe = { x: p.pos.x, z: p.pos.z };
     cup.position.set(0, -0.4, z1 + 3);
     G.audio.music('field');
     this.toast('에리테이아 섬에 도착!', 2);
